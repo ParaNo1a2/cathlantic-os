@@ -385,6 +385,38 @@ for key, val in defaults.items():
         st.session_state[key] = val
 
 # ============================================================
+# LOGIN GATE
+# ============================================================
+_APP_PASSWORD = st.secrets.get("APP_PASSWORD", "cathlantic2026")
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.markdown("""
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
+      <div style="text-align:center;max-width:380px;width:100%;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:3.5rem;letter-spacing:.12em;
+                    background:linear-gradient(135deg,#FF1744,#FF6B35);
+                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                    margin-bottom:4px;">CATHLANTIC</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;letter-spacing:.3em;
+                    color:#7A3040;text-transform:uppercase;margin-bottom:40px;">OPERATING SYSTEM</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 1.2, 1])
+    with col2:
+        pwd = st.text_input("Şifre", type="password", placeholder="••••••••••••", label_visibility="collapsed")
+        if st.button("GİRİŞ", use_container_width=True, type="primary"):
+            if pwd == _APP_PASSWORD:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Hatalı şifre.")
+    st.stop()
+
+# ============================================================
 # LANDING — ŞİRKET SEÇİMİ
 # ============================================================
 def _reset_campaign_state():
