@@ -105,6 +105,9 @@ def run_leads_finder(
         raise RuntimeError(f"Dataset okunamadı: {e}")
 
     leads = [_normalize_lead(item) for item in items if _is_valid_lead(item)]
+    meta["raw_items"] = len(items)       # Apollo'dan gelen ham item sayısı
+    meta["valid_leads"] = len(leads)     # _is_valid_lead geçen
+    meta["actor_input"] = actor_input    # debug için gönderilen parametreler
     return leads, meta
 
 
@@ -157,17 +160,18 @@ def _normalize_lead(item: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 _TURKISH_CHARS = set("ğüşıöçĞÜŞİÖÇ")
+# Sadece Türkçe karakteri olmayan ama Türkçe olan kelimeler (tam kelime eşleşmesi)
 _TURKISH_WORDS = {
-    "genel", "müdür", "direktörü", "satın", "alma", "satış", "pazarlama",
-    "operasyon", "lojistik", "tedarik", "zinciri", "ürün", "kurucu",
-    "yönetici", "ortak", "işletme", "sahibi", "e-ticaret", "mağaza",
-    "giyim", "kıyafet", "moda", "son", "mil", "depolama", "kargo",
-    "takip", "stoksuz", "tedarikçi", "dropshipping",
+    "genel", "müdür", "satın", "alma", "satış", "pazarlama",
+    "operasyon", "lojistik", "tedarik", "zinciri", "kurucu",
+    "yönetici", "ortak", "sahibi", "mağaza", "giyim", "moda",
+    "depolama", "kargo", "takip", "tedarikçi",
 }
 
 
 def _is_turkish(text: str) -> bool:
     if any(c in text for c in _TURKISH_CHARS):
         return True
-    lower = text.lower()
-    return any(w in lower for w in _TURKISH_WORDS)
+    # Tam kelime eşleşmesi — substring değil (örn: "son" in "person" olmamalı)
+    words = set(text.lower().split())
+    return bool(words & _TURKISH_WORDS)

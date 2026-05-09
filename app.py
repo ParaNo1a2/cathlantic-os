@@ -406,7 +406,7 @@ defaults = {
     "selected_job_titles": [],
     "sector_input_value": "",
     "automation_input_value": "",
-    "country_input_value": ["Turkey"],
+    "country_input_value": ["Türkiye"],
     "company_sizes_value": ["11 - 50", "51 - 200"],
     "company_size_filter_enabled": True,
     "company_size_rec": {},
@@ -1058,7 +1058,7 @@ if st.session_state.step1_done:
             )
 
         COUNTRY_OPTIONS = {
-            "🇹🇷 Türkiye": "Turkey",
+            "🇹🇷 Türkiye": "Türkiye",
             "🇩🇪 Almanya": "Germany",
             "🇺🇸 Amerika": "United States",
             "🇬🇧 İngiltere": "United Kingdom",
@@ -1078,7 +1078,7 @@ if st.session_state.step1_done:
             default=["🇹🇷 Türkiye"],
             help="Apify bu ülkelerdeki profilleri tarar. Birden fazla seçebilirsin."
         )
-        selected_countries = [COUNTRY_OPTIONS[lbl] for lbl in selected_country_labels] or ["Turkey"]
+        selected_countries = [COUNTRY_OPTIONS[lbl] for lbl in selected_country_labels] or ["Türkiye"]
         st.session_state.country_input_value = selected_countries
 
         with st.expander("Apify'a gönderilecek parametreleri gör"):
@@ -1198,11 +1198,27 @@ if st.session_state.step1_done:
                             f"{meta['titles_sent']} unvan gönderildi (fazlası otomatik kesildi)."
                         )
                     if not leads:
+                        raw = meta.get("raw_items", "?")
+                        valid = meta.get("valid_leads", 0)
                         st.error(
-                            "Apify 0 lead döndürdü. Şunları dene: "
-                            "şirket büyüklüğü filtresini gevşet, "
-                            "'Sadece doğrulanmış email' toggle'ını kapat veya farklı ülke seç."
+                            f"Apify 0 kullanılabilir lead döndürdü. "
+                            f"Apollo'dan **{raw}** ham kayıt geldi, geçerlilik filtresinden **{valid}** geçti."
                         )
+                        with st.expander("🔍 Debug — Apify'a gönderilen parametreler"):
+                            import json as _json
+                            st.code(_json.dumps(meta.get("actor_input", {}), indent=2, ensure_ascii=False), language="json")
+                        if raw == 0:
+                            st.warning(
+                                "Apollo hiç kayıt döndürmedi. Olası sebepler:\n"
+                                "- Filtrelerin kombinasyonu çok kısıtlayıcı (büyüklük, keyword, email doğrulama)\n"
+                                "- **Şirket büyüklüğü filtresini kapat** veya farklı aralık seç\n"
+                                "- 'Sadece doğrulanmış email' kapatıp tekrar dene (Türkiye'de verified email sayısı az)"
+                            )
+                        else:
+                            st.warning(
+                                f"Apollo {raw} kayıt döndürdü ama geçerlilik filtresinden geçemedi. "
+                                "Email veya isim alanı eksik olabilir."
+                            )
                     else:
                         st.session_state.leads_raw = leads
                         st.session_state.step2_done = True
