@@ -295,13 +295,13 @@ def analyze_lead(first_name: str, website_text: str, target_sector: str, automat
 # ---------------------------------------------------------------------------
 
 COMPANY_SIZE_OPTIONS = [
-    {"label": "🏠 Mikro (1–10 çalışan)",        "value": "1-10"},
-    {"label": "🏪 Küçük (11–50 çalışan)",        "value": "11-50"},
-    {"label": "🏢 Orta-Küçük (51–200 çalışan)",  "value": "51-200"},
-    {"label": "🏬 Orta-Büyük (201–500 çalışan)", "value": "201-500"},
-    {"label": "🏛️ Büyük (501–1.000 çalışan)",    "value": "501-1000"},
-    {"label": "🏗️ Kurumsal (1.001–5.000)",        "value": "1001-5000"},
-    {"label": "🌐 Büyük Kurumsal (5.001–10.000)", "value": "5001-10000"},
+    {"label": "🏠 Mikro (1–10 çalışan)",        "value": "2 - 10"},
+    {"label": "🏪 Küçük (11–50 çalışan)",        "value": "11 - 50"},
+    {"label": "🏢 Orta-Küçük (51–200 çalışan)",  "value": "51 - 200"},
+    {"label": "🏬 Orta-Büyük (201–500 çalışan)", "value": "201 - 500"},
+    {"label": "🏛️ Büyük (501–1.000 çalışan)",    "value": "501 - 1000"},
+    {"label": "🏗️ Kurumsal (1.001–5.000)",        "value": "1001 - 5000"},
+    {"label": "🌐 Büyük Kurumsal (5.001–10.000)", "value": "5001 - 10000"},
     {"label": "🌍 Dev Şirket (10.000+)",           "value": "10000+"},
 ]
 
@@ -357,7 +357,7 @@ def recommend_company_sizes(sector: str, automation: str) -> dict:
             messages=[{"role": "user", "content": prompt}]
         )
     except anthropic.APIError as e:
-        return {"recommended": ["11-50", "51-200"], "reasoning": {}}
+        return {"recommended": ["11 - 50", "51 - 200"], "reasoning": {}}
 
     raw = response.content[0].text.strip()
     if raw.startswith("```"):
@@ -369,7 +369,7 @@ def recommend_company_sizes(sector: str, automation: str) -> dict:
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
-        return {"recommended": ["11-50", "51-200"], "reasoning": {}}
+        return {"recommended": ["11 - 50", "51 - 200"], "reasoning": {}}
 
 
 # ---------------------------------------------------------------------------
