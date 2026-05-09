@@ -986,7 +986,7 @@ if st.session_state.step1_done:
         f"**Adım 1 tamamlandı!** · "
         f"{len(st.session_state.selected_apollo_industries)} Apollo industry · "
         f"{len([k for k in st.session_state.selected_keywords if not any(c in k for c in 'ğüşıöçĞÜŞİÖÇ')])} EN keyword · "
-        f"{len(en_titles_all)} EN unvan · Apify'a hazır."
+        f"{len(en_titles)} EN unvan · Apify'a hazır."
     )
 
     col_kw, col_title = st.columns(2)
