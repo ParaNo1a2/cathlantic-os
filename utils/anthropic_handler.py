@@ -18,22 +18,48 @@ def get_client() -> anthropic.Anthropic:
     return _client
 
 
-SECTOR_EXPANSION_PROMPT = """Sen B2B soğuk e-posta kampanyaları için sektör araştırması yapan uzman bir growth hacker'sın.
+SECTOR_EXPANSION_PROMPT = """Sen Apollo.io B2B lead veritabanı için sektör araştırması yapan uzman bir growth hacker'sın.
+Ürettiğin veriler doğrudan Apollo.io'nun filtreleme parametrelerine girecek — bu yüzden formatlar Apollo'nun beklediği gibi OLMALI.
 
 Ana sektör: "{sector}"
 Sunulan otomasyon/hizmet: "{automation}"
 
-Görevin: Bu sektörle doğrudan veya dolaylı olarak ilişkili, Türkiye'deki B2B müşteri adayı bulmaya uygun niş alt-sektörleri ve yan sektörleri belirle.
-Öncelik: Sunulan otomasyon/hizmetten en fazla fayda sağlayacak alt-sektörleri öne çıkar.
+APOLLO.IO PARAMETRELERİ VE KURALLARI:
 
-KURALLAR:
-- En az 8, en fazla 15 alt/yan sektör listele
-- Her sektör gerçekten B2B potansiyeli taşımalı (karar vericilere ulaşılabilir olmalı)
-- Hedef: Türkiye'de faaliyet gösteren işletmeler
-- keywords_tr: Türkiye'deki şirketlerin Türkçe LinkedIn/web profillerinde kullandığı terimler — sunulan otomasyon ile alakalı kavramları da dahil et
-- keywords_en: Aynı şirketlerin İngilizce profillerinde veya uluslararası piyasada kullandığı terimler
-- Her dilde 3-5 keyword — spesifik ve arama motoruna uyumlu olmalı, genel değil
-- İki dilde keyword seti birbirini tamamlamalı, birebir çeviri olmamalı
+1. apollo_industries → Apollo'nun "industry" filtresi için STANDART sektör adları (EXACT MATCH)
+   Sadece bu listeden seç, uydurma:
+   "Retail", "Apparel & Fashion", "Luxury Goods & Jewelry", "Sporting Goods",
+   "Wholesale", "Consumer Goods", "Import and Export", "Furniture",
+   "Logistics and Supply Chain", "Transportation/Trucking/Railroad", "Warehousing",
+   "Internet", "Information Technology and Services", "Computer Software",
+   "E-Learning", "Professional Training & Coaching", "Management Consulting",
+   "Real Estate", "Construction", "Facilities Services",
+   "Health, Wellness and Fitness", "Hospital & Health Care", "Medical Practice",
+   "Financial Services", "Insurance", "Banking", "Accounting",
+   "Automotive", "Mechanical or Industrial Engineering",
+   "Food & Beverages", "Restaurants", "Hospitality",
+   "Marketing and Advertising", "Public Relations and Communications",
+   "Legal Services", "Law Practice",
+   "Consumer Electronics", "Electrical/Electronic Manufacturing",
+   "Pharmaceuticals", "Medical Devices",
+   "Oil & Energy", "Mining & Metals", "Chemicals",
+   "Textiles", "Plastics", "Paper & Forest Products",
+   "Events Services", "Entertainment", "Media Production"
+
+2. keywords_en → Apollo'nun "industryKeywords" filtresi için KISA EN terimler (1-3 kelime)
+   Bu arama şirket profillerinde geçen kelimeleri bulur.
+   KURAL: Türkçe kelime YOK, 3 kelimeden uzun cümle YOK, şehir/ülke adı YOK
+   İyi örnek: "ecommerce", "dropshipping", "3PL", "fashion retail", "B2B SaaS"
+   Kötü örnek: "fashion ecommerce Turkey" (ülke adı var, uzun)
+
+3. keywords_tr → Sadece UI görünümü için. Apify'a GÖNDERİLMEZ. 2-3 Türkçe terim.
+
+GENEL KURALLAR:
+- 8-12 alt/yan sektör listele, B2B potansiyeli gerçek olmalı
+- apollo_industries: her sektör için 1-3 adet (sadece listeden seç)
+- keywords_en: her sektör için 3-5 adet (kısa, spesifik)
+- keywords_tr: 2-3 adet (sadece UI)
+- reason: otomasyon+sektör uyumunu 1 cümlede anlat
 
 Yanıtını YALNIZCA aşağıdaki JSON formatında ver. Başka hiçbir metin ekleme:
 
@@ -41,9 +67,10 @@ Yanıtını YALNIZCA aşağıdaki JSON formatında ver. Başka hiçbir metin ekl
   "sectors": [
     {{
       "sector_name": "Sektör adı (Türkçe)",
-      "reason": "Neden bu sektör ve bu otomasyon uyumlu (1-2 cümle, net ve satış odaklı)",
-      "keywords_tr": ["türkçe keyword1", "türkçe keyword2", "türkçe keyword3"],
-      "keywords_en": ["english keyword1", "english keyword2", "english keyword3"]
+      "reason": "Neden bu sektör bu otomasyona uygun (1 cümle, satış odaklı)",
+      "apollo_industries": ["Retail", "Apparel & Fashion"],
+      "keywords_en": ["fashion retail", "ecommerce", "dropshipping"],
+      "keywords_tr": ["moda e-ticaret", "online giyim"]
     }}
   ]
 }}"""
@@ -93,43 +120,54 @@ def expand_sectors(sector: str, automation: str = "") -> list[dict]:
     try:
         data = json.loads(raw_text)
         sectors = data["sectors"]
-        # keywords_tr + keywords_en → birleşik keywords listesi (Apify için)
         for s in sectors:
-            s["keywords_tr"] = s.get("keywords_tr", [])
-            s["keywords_en"] = s.get("keywords_en", [])
+            s["keywords_tr"]      = s.get("keywords_tr", [])
+            s["keywords_en"]      = s.get("keywords_en", [])
+            s["apollo_industries"] = s.get("apollo_industries", [])
+            # birleşik liste — UI'da gösterim için (TR dahil)
             s["keywords"] = s["keywords_tr"] + s["keywords_en"]
         return sectors
     except (json.JSONDecodeError, KeyError) as e:
         raise RuntimeError(f"Model yanıtı parse edilemedi: {e}\nHam yanıt: {raw_text[:300]}")
 
 
-JOB_TITLE_PROMPT = """Sen B2B soğuk e-posta kampanyaları için hedef kitle belirleyen uzman bir growth hacker'sın.
+JOB_TITLE_PROMPT = """Sen Apollo.io B2B lead veritabanı için hedef kitle belirleyen uzman bir growth hacker'sın.
+Ürettiğin İngilizce unvanlar Apollo.io'nun personTitle filtresine girecek — Apollo veritabanıyla EXACT veya SUBSTRING MATCH yapacak.
 
 Ana sektör: "{sector}"
 Hedeflenen alt-sektörler: {sub_sectors}
 
-Görevin: Bu sektörlerdeki şirketlerde GERÇEK SATIN ALMA YETKİSİ veya KARAR VERME GÜCÜ olan pozisyonları belirle.
+APOLLO.IO TITLE KURALLARI:
+- "en" alanı: Apollo'nun veritabanında GERÇEKTEN GEÇEN kısa ve yaygın İngilizce unvanlar
+  İyi: "CEO", "Founder", "E-Commerce Manager", "Operations Director", "General Manager"
+  Kötü: "Baş Dijital Dönüşüm ve E-Ticaret Sorumlusu" (çok uzun, Apollo'da yok)
+- "en" alanında maksimum 4 kelime kullan
+- Sektöre özel ama Apollo'da yaygın geçen unvanlar seç
+- "tr" alanı: Sadece UI görünümü için Türkçe karşılık (Apify'a GÖNDERİLMEZ)
 
-KRİTİK KURALLAR:
-- SADECE şu profilleri dahil et:
-  * C-Level: CEO, COO, CMO, CFO, CTO, Genel Müdür, Kurucu, Ortak
-  * Director/VP level: Satış Direktörü, Pazarlama Direktörü, Satın Alma Direktörü, İş Geliştirme Direktörü
-  * Manager level: Satış Müdürü, Pazarlama Müdürü, Satın Alma Müdürü, Operasyon Müdürü
-  * Sahip/Ortak profili: İşletme Sahibi, Yönetici Ortak
-- KESINLIKLE DAHIL ETME: İK, İnsan Kaynakları, HR, Muhasebe (CFO hariç), IT Destek, Sekreter, Asistan
-- Her unvan hem Türkçe hem İngilizce olmalı (iki dilli — Apify her iki dilde de arama yapacak)
-- Sektöre özel ve gerçekçi unvanlar üret — genel geçer değil
-- Toplam 20-35 adet benzersiz unvan üret
+KAPSAM (sadece satın alma / karar verme yetkisi olanlar):
+- C-Level: CEO, Co-Founder, Founder, Owner, COO, CMO, CFO, CTO, General Manager
+- Director: Sales Director, Marketing Director, Operations Director, Procurement Director, Business Development Director
+- Manager: Sales Manager, Marketing Manager, Operations Manager, E-Commerce Manager, Procurement Manager
+- VP: VP Sales, VP Marketing, VP Operations, Vice President
+- Owner: Business Owner, Managing Partner, Managing Director
+
+KESINLIKLE DAHIL ETME: HR, Human Resources, Accounting (CFO hariç), IT Support, Assistant, Secretary
+
+KURALLAR:
+- 15-25 benzersiz unvan üret
+- Her unvan için hem "tr" (UI) hem "en" (Apollo) ver
+- "en" kısa ve Apollo-uyumlu olmalı
 
 Yanıtını YALNIZCA aşağıdaki JSON formatında ver. Başka hiçbir metin ekleme:
 
 {{
   "job_titles": [
     {{
-      "tr": "Türkçe Unvan",
-      "en": "English Title",
+      "tr": "Türkçe Unvan (sadece gösterim)",
+      "en": "English Title (Apollo filter)",
       "authority_level": "C-Level|Director|Manager|Owner",
-      "why": "Bu unvanın satın alma/karar yetkisi neden var (tek cümle)"
+      "why": "Satın alma/karar yetkisi neden var (tek cümle)"
     }}
   ]
 }}"""
@@ -319,7 +357,7 @@ def recommend_company_sizes(sector: str, automation: str) -> dict:
             messages=[{"role": "user", "content": prompt}]
         )
     except anthropic.APIError as e:
-        return {"recommended": ["11,50", "51,200"], "reasoning": {}}
+        return {"recommended": ["11-50", "51-200"], "reasoning": {}}
 
     raw = response.content[0].text.strip()
     if raw.startswith("```"):
@@ -331,7 +369,7 @@ def recommend_company_sizes(sector: str, automation: str) -> dict:
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
-        return {"recommended": ["11,50", "51,200"], "reasoning": {}}
+        return {"recommended": ["11-50", "51-200"], "reasoning": {}}
 
 
 # ---------------------------------------------------------------------------

@@ -7,9 +7,16 @@ load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env", override=True)
 
 ACTOR_ID = "T1XDXWc1L92AfIJtd"
 
-# Apollo scraper hard limits
+# Scraper hard limits (input-schema'dan)
 MAX_INDUSTRY_KEYWORDS = 100
-MAX_PERSON_TITLES = 50
+MAX_PERSON_TITLES     = 100
+MAX_INDUSTRIES        = 20
+
+# Apollo'nun geçerli companyEmployeeSize değerleri (tam liste)
+VALID_EMPLOYEE_SIZES = {
+    "1-10", "11-50", "51-200", "201-500",
+    "501-1000", "1001-5000", "5001-10000", "10000+",
+}
 
 
 def get_client(api_key: str = "") -> ApifyClient:
@@ -27,44 +34,60 @@ def run_leads_finder(
     run_label: str = "LCadreon Run",
     countries: list[str] | None = None,
     company_sizes: list[str] | None = None,
+    industries: list[str] | None = None,
     api_key: str = "",
 ) -> tuple[list[dict], dict]:
     """
-    Apify Leads Scraper actor'ını çalıştırır ve sonuçları döner.
+    Apify peakydev/leads-scraper actor'ını çalıştırır.
 
-    Returns:
-        (leads, meta) — meta: {"keywords_sent": int, "titles_sent": int, "truncated": bool}
+    Parametre isimleri ve değerleri aktörün input-schema'sına birebir uyar.
+    Returns: (leads, meta) — meta: {"keywords_sent", "titles_sent", "truncated"}
     """
     client = get_client(api_key)
 
-    # EN keyword ve unvanları filtrele — Apollo verisi İngilizce
+    # EN keyword'leri filtrele ve limitle
     en_keywords = [k for k in keywords if not _is_turkish(k)]
     keywords_to_send = (en_keywords if en_keywords else keywords)[:MAX_INDUSTRY_KEYWORDS]
 
+    # EN unvanları filtrele ve limitle
     en_titles = [t for t in job_titles if not _is_turkish(t)]
     titles_to_send = (en_titles if en_titles else job_titles)[:MAX_PERSON_TITLES]
 
-    truncated = len(en_keywords) > MAX_INDUSTRY_KEYWORDS or len(en_titles) > MAX_PERSON_TITLES
+    # Geçerli company size değerlerini doğrula
+    valid_sizes = [s for s in (company_sizes or []) if s in VALID_EMPLOYEE_SIZES]
+
+    truncated = (
+        len(en_keywords) > MAX_INDUSTRY_KEYWORDS
+        or len(en_titles) > MAX_PERSON_TITLES
+    )
 
     actor_input = {
-        "totalResults": max(fetch_count, 100),
-        "personTitle": titles_to_send,
-        "personCountry": countries if countries else ["Turkey"],
-        "industryKeywords": keywords_to_send,
-        "includeEmails": True,
+        "totalResults":          max(fetch_count, 100),
+        "personTitle":           titles_to_send,
+        "personCountry":         countries if countries else ["Turkey"],
+        "industryKeywords":      keywords_to_send,
+        "includeEmails":         True,
+        "skipLeadsWithoutEmails": True,
     }
 
-    meta = {
-        "keywords_sent": len(keywords_to_send),
-        "titles_sent": len(titles_to_send),
-        "truncated": truncated,
-    }
+    # Apollo standart industry adları (daha kesin filtreleme)
+    if industries:
+        actor_input["industry"] = industries[:MAX_INDUSTRIES]
 
+    # Sadece verified email toggle'ı açıksa ekle
     if only_validated_emails:
         actor_input["contactEmailStatus"] = "verified"
 
-    if company_sizes:
-        actor_input["companyEmployeeSize"] = company_sizes
+    # Şirket büyüklüğü (sadece geçerli değerler)
+    if valid_sizes:
+        actor_input["companyEmployeeSize"] = valid_sizes
+
+    meta = {
+        "keywords_sent": len(keywords_to_send),
+        "titles_sent":   len(titles_to_send),
+        "industries_sent": len(actor_input.get("industry", [])),
+        "truncated":     truncated,
+    }
 
     try:
         run = client.actor(ACTOR_ID).call(run_input=actor_input, timeout_secs=600)
@@ -91,38 +114,68 @@ def run_leads_finder(
 
 
 def _is_valid_lead(item: dict) -> bool:
-    has_email = bool(item.get("email"))
-    has_name = bool(item.get("firstName") or item.get("fullName"))
-    is_progress_msg = "🟢" in str(item.get("fullName", "")) or "Refer to the log" in str(item)
-    return has_email and has_name and not is_progress_msg
+    # İlerleme mesajlarını filtrele
+    if "🟢" in str(item.get("fullName", "")) or "Refer to the log" in str(item):
+        return False
+    has_name = bool(item.get("firstName") or item.get("fullName") or item.get("name"))
+    # Email: tek alan veya dizi olabilir
+    has_email = bool(
+        item.get("email")
+        or (isinstance(item.get("emails"), list) and item["emails"])
+        or item.get("workEmail")
+    )
+    return has_name and has_email
 
+
+def _normalize_lead(item: dict) -> dict:
+    # Email: önce tekil alan, yoksa dizi ilk elemanı, yoksa workEmail
+    email = (
+        item.get("email")
+        or (item.get("emails") or [""])[0]
+        or item.get("workEmail", "")
+    )
+
+    website = (
+        item.get("organizationWebsite")
+        or item.get("companyWebsite")
+        or item.get("website", "")
+    )
+    if website and not website.startswith("http"):
+        website = "https://" + website
+
+    # first_name: önce firstName, yoksa fullName'den ilk kelime
+    full_name = item.get("fullName") or item.get("name") or ""
+    first_name = item.get("firstName") or (full_name.split()[0] if full_name else "")
+    last_name  = item.get("lastName")  or (" ".join(full_name.split()[1:]) if full_name else "")
+
+    return {
+        "first_name":    first_name.strip(),
+        "last_name":     last_name.strip(),
+        "email":         email.strip().lower(),
+        "company_name":  item.get("organizationName") or item.get("companyName") or "",
+        "company_website": website,
+        "job_title":     item.get("position") or item.get("title") or item.get("jobTitle") or "",
+        "location":      item.get("city") or item.get("country") or "",
+        "linkedin_url":  item.get("linkedinUrl") or item.get("linkedin") or "",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Yardımcı — Türkçe metin tespiti
+# ---------------------------------------------------------------------------
 
 _TURKISH_CHARS = set("ğüşıöçĞÜŞİÖÇ")
 _TURKISH_WORDS = {
     "genel", "müdür", "direktörü", "satın", "alma", "satış", "pazarlama",
     "operasyon", "lojistik", "tedarik", "zinciri", "ürün", "kurucu",
-    "yönetici", "ortak", "işletme", "sahibi", "e-ticaret",
+    "yönetici", "ortak", "işletme", "sahibi", "e-ticaret", "mağaza",
+    "giyim", "kıyafet", "moda", "son", "mil", "depolama", "kargo",
+    "takip", "stoksuz", "tedarikçi", "dropshipping",
 }
 
 
 def _is_turkish(text: str) -> bool:
-    lower = text.lower()
     if any(c in text for c in _TURKISH_CHARS):
         return True
+    lower = text.lower()
     return any(w in lower for w in _TURKISH_WORDS)
-
-
-def _normalize_lead(item: dict) -> dict:
-    website = item.get("organizationWebsite", "")
-    if website and not website.startswith("http"):
-        website = "https://" + website
-
-    return {
-        "first_name": item.get("firstName", "").strip(),
-        "last_name": item.get("lastName", "").strip(),
-        "email": item.get("email", "").strip().lower(),
-        "company_name": item.get("organizationName", ""),
-        "company_website": website,
-        "job_title": item.get("position", ""),
-        "location": item.get("city", "") or item.get("country", ""),
-    }

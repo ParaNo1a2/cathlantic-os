@@ -400,6 +400,7 @@ AUTOMATION_PRESETS = [
 defaults = {
     "sectors_data": [],
     "selected_keywords": [],
+    "selected_apollo_industries": [],
     "selected_sector_names": [],
     "job_titles_data": [],
     "selected_job_titles": [],
@@ -810,38 +811,45 @@ if st.session_state.sectors_data and not st.session_state.sectors_approved:
 
     selected_sectors = []
     # Başlık satırı
-    h0, h1, h2, h3, h4 = st.columns([0.5, 2, 3, 2.5, 2.5])
+    h0, h1, h2, h3, h4, h5 = st.columns([0.5, 2, 2.5, 2, 2, 1.5])
     with h1: st.caption("**Sektör**")
     with h2: st.caption("**Neden hedef?**")
-    with h3: st.caption("**🇹🇷 Türkçe Keywords**")
-    with h4: st.caption("**🇬🇧 English Keywords**")
+    with h3: st.caption("**Apollo Industries**")
+    with h4: st.caption("**🇬🇧 Keywords (Apify)**")
+    with h5: st.caption("**🇹🇷 TR (UI)**")
     st.divider()
 
     for i, item in enumerate(st.session_state.sectors_data):
-        col_check, col_name, col_reason, col_kw_tr, col_kw_en = st.columns([0.5, 2, 3, 2.5, 2.5])
+        col_check, col_name, col_reason, col_ind, col_kw_en, col_kw_tr = st.columns([0.5, 2, 2.5, 2, 2, 1.5])
         with col_check:
             checked = st.checkbox("", key=f"sector_{i}", value=True)
         with col_name:
             st.markdown(f"**{item['sector_name']}**")
         with col_reason:
             st.caption(item["reason"])
-        with col_kw_tr:
-            st.markdown(" · ".join([f"`{kw}`" for kw in item.get("keywords_tr", [])]))
+        with col_ind:
+            apollo_inds = item.get("apollo_industries", [])
+            if apollo_inds:
+                st.markdown(" · ".join([f"`{ind}`" for ind in apollo_inds]))
+            else:
+                st.caption("—")
         with col_kw_en:
             st.markdown(" · ".join([f"`{kw}`" for kw in item.get("keywords_en", [])]))
+        with col_kw_tr:
+            st.caption(" · ".join(item.get("keywords_tr", [])))
         if checked:
             selected_sectors.append(item)
 
     st.divider()
     col_info, col_btn = st.columns([3, 1])
     with col_info:
-        total_tr = sum(len(s.get("keywords_tr", [])) for s in selected_sectors)
-        total_en = sum(len(s.get("keywords_en", [])) for s in selected_sectors)
+        total_en  = sum(len(s.get("keywords_en", [])) for s in selected_sectors)
+        total_ind = len({ind for s in selected_sectors for ind in s.get("apollo_industries", [])})
         st.info(
             f"**{len(selected_sectors)}** sektör seçildi · "
-            f"🇹🇷 **{total_tr}** TR keyword · "
-            f"🇬🇧 **{total_en}** EN keyword · "
-            f"Toplam **{total_tr + total_en}** arama terimi Apify'a gidecek"
+            f"🏷️ **{total_ind}** Apollo Industry · "
+            f"🔑 **{total_en}** EN keyword · "
+            f"Apify'a gidecek (TR keywordler hariç)"
         )
     with col_btn:
         if st.button("✅ Sektörleri Onayla →", type="primary", use_container_width=True):
@@ -850,11 +858,14 @@ if st.session_state.sectors_data and not st.session_state.sectors_approved:
             else:
                 all_keywords = []
                 all_names = []
+                all_apollo_industries = []
                 for s in selected_sectors:
                     all_keywords.extend(s.get("keywords_tr", []))
                     all_keywords.extend(s.get("keywords_en", []))
                     all_names.append(s["sector_name"])
+                    all_apollo_industries.extend(s.get("apollo_industries", []))
                 st.session_state.selected_keywords = list(dict.fromkeys(all_keywords))
+                st.session_state.selected_apollo_industries = list(dict.fromkeys(all_apollo_industries))
                 st.session_state.selected_sector_names = all_names
                 st.session_state.sectors_approved = True
                 st.rerun()
@@ -876,16 +887,18 @@ if st.session_state.sectors_approved:
     auto_label = st.session_state.automation_input_value
     auto_short = (auto_label[:55] + "...") if len(auto_label) > 58 else auto_label
     with st.expander(
-        f"✅ Sektörler onaylandı — 🇹🇷 {len(all_kw_tr)} TR · 🇬🇧 {len(all_kw_en)} EN · "
+        f"✅ Sektörler onaylandı — "
+        f"🏷️ {len(st.session_state.selected_apollo_industries)} Apollo Industry · "
+        f"🔑 {len(all_kw_en)} EN keyword · "
         f"{len(st.session_state.selected_sector_names)} sektör · 🤖 {auto_short}",
         expanded=False
     ):
-        col_tr, col_en = st.columns(2)
-        with col_tr:
-            st.caption("🇹🇷 Türkçe Keywords")
-            st.code(", ".join(all_kw_tr), language=None)
+        col_ind, col_en = st.columns(2)
+        with col_ind:
+            st.caption("🏷️ Apollo Industries (industry filtresi)")
+            st.code("\n".join(st.session_state.selected_apollo_industries) or "(yok)", language=None)
         with col_en:
-            st.caption("🇬🇧 English Keywords")
+            st.caption("🔑 Keywords EN (industryKeywords filtresi)")
             st.code(", ".join(all_kw_en), language=None)
 
     st.divider()
@@ -971,22 +984,25 @@ if st.session_state.step1_done:
 
     st.success(
         f"**Adım 1 tamamlandı!** · "
-        f"{len(st.session_state.selected_keywords)} keyword · "
-        f"{len(all_titles)} unvan (TR+EN) Apify'a hazır."
+        f"{len(st.session_state.selected_apollo_industries)} Apollo industry · "
+        f"{len([k for k in st.session_state.selected_keywords if not any(c in k for c in 'ğüşıöçĞÜŞİÖÇ')])} EN keyword · "
+        f"{len(en_titles_all)} EN unvan · Apify'a hazır."
     )
 
     col_kw, col_title = st.columns(2)
     with col_kw:
-        with st.expander("📦 Onaylanan Keywordler (TR + EN)"):
-            kws = st.session_state.selected_keywords
-            mid = len(kws) // 2
+        with st.expander("📦 Apify'a Gidecek Parametreler"):
+            apollo_inds = st.session_state.selected_apollo_industries
+            en_kws = [k for k in st.session_state.selected_keywords if not any(
+                c in k for c in "ğüşıöçĞÜŞİÖÇ"
+            )]
             c1, c2 = st.columns(2)
             with c1:
-                st.caption("🇹🇷 Türkçe")
-                st.code("\n".join(kws[:mid]), language=None)
+                st.caption("🏷️ Apollo Industries")
+                st.code("\n".join(apollo_inds) if apollo_inds else "(yok)", language=None)
             with c2:
-                st.caption("🇬🇧 English")
-                st.code("\n".join(kws[mid:]), language=None)
+                st.caption("🔑 Keywords EN")
+                st.code("\n".join(en_kws), language=None)
     with col_title:
         with st.expander("👔 Onaylanan Unvanlar (TR + EN)"):
             c1, c2 = st.columns(2)
@@ -1065,17 +1081,21 @@ if st.session_state.step1_done:
         st.session_state.country_input_value = selected_countries
 
         with st.expander("Apify'a gönderilecek parametreleri gör"):
-            pc1, pc2 = st.columns(2)
+            pc1, pc2, pc3 = st.columns(3)
             with pc1:
-                st.caption("**Keywordler**")
-                st.code("\n".join(st.session_state.selected_keywords), language=None)
+                st.caption("**Apollo Industries**")
+                st.code("\n".join(st.session_state.selected_apollo_industries) or "(yok)", language=None)
             with pc2:
-                st.caption("**Unvanlar (TR + EN)**")
-                st.code("\n".join(all_job_titles), language=None)
+                st.caption("**Keywords EN**")
+                en_kws_apify = [k for k in st.session_state.selected_keywords
+                                if not any(c in k for c in "ğüşıöçĞÜŞİÖÇ")]
+                st.code("\n".join(en_kws_apify), language=None)
+            with pc3:
+                st.caption("**Unvanlar EN**")
+                st.code("\n".join(en_titles_all), language=None)
             st.caption(
                 f"**Lokasyon:** {', '.join(selected_country_labels)} · "
-                "**Seniority:** Founder, Owner, C-Suite, Director, VP, Head, Manager · "
-                "**Email:** " + ("Sadece Validated" if only_validated else "Tümü")
+                "**Email:** " + ("Sadece Verified" if only_validated else "Email olanlar")
             )
 
     with tab_size:
@@ -1151,6 +1171,7 @@ if st.session_state.step1_done:
                         run_label=run_label,
                         countries=st.session_state.country_input_value,
                         company_sizes=st.session_state.company_sizes_value,
+                        industries=st.session_state.selected_apollo_industries,
                         api_key=_apify_key,
                     )
                     if meta.get("truncated"):
