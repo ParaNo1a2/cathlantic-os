@@ -1211,6 +1211,9 @@ if st.session_state.step1_done:
                         with st.expander("🔍 Debug — Apify'a gönderilen parametreler"):
                             import json as _json
                             st.code(_json.dumps(meta.get("actor_input", {}), indent=2, ensure_ascii=False), language="json")
+                        if meta.get("rejected_sample"):
+                            with st.expander("🔬 Debug — Reddedilen kaydın field'ları (email/isim nerede?)"):
+                                st.code(_json.dumps(meta.get("rejected_sample", {}), indent=2, ensure_ascii=False), language="json")
                         if raw == 0:
                             st.warning(
                                 "Apollo hiç kayıt döndürmedi. Olası sebepler:\n"

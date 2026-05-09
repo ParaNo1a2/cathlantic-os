@@ -109,9 +109,15 @@ def run_leads_finder(
         raise RuntimeError(f"Dataset okunamadı: {e}")
 
     leads = [_normalize_lead(item) for item in items if _is_valid_lead(item)]
-    meta["raw_items"] = len(items)       # Apollo'dan gelen ham item sayısı
-    meta["valid_leads"] = len(leads)     # _is_valid_lead geçen
-    meta["actor_input"] = actor_input    # debug için gönderilen parametreler
+    meta["raw_items"] = len(items)
+    meta["valid_leads"] = len(leads)
+    meta["actor_input"] = actor_input
+    # İlk reddedilen item'ın field adlarını göster (hangi key'lerle geliyor)
+    rejected = [item for item in items if not _is_valid_lead(item)]
+    if rejected:
+        sample = rejected[0]
+        meta["rejected_sample_keys"] = list(sample.keys())
+        meta["rejected_sample"] = {k: str(v)[:80] for k, v in sample.items()}
     return leads, meta
 
 
