@@ -64,7 +64,7 @@ def run_leads_finder(
     actor_input = {
         "totalResults":           max(fetch_count, 100),   # scraper minimum 100
         "personTitle":            titles_to_send,           # OR içinde, genişletici
-        "companyCountry":         list(dict.fromkeys(countries)) if countries else ["Turkey"],
+        "companyCountry":         list(dict.fromkeys(countries)) if countries else ["Turkey"],  # scraper enum: "Turkey" (Türkiye değil)
         "industryKeywords":       keywords_to_send,         # OR içinde, genişletici
         "includeEmails":          True,
         "skipLeadsWithoutEmails": True,

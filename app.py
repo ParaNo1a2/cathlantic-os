@@ -406,7 +406,7 @@ defaults = {
     "selected_job_titles": [],
     "sector_input_value": "",
     "automation_input_value": "",
-    "country_input_value": ["Türkiye"],
+    "country_input_value": ["Turkey"],
     "company_sizes_value": ["11 - 50", "51 - 200"],
     "company_size_filter_enabled": True,
     "company_size_rec": {},
@@ -1058,7 +1058,7 @@ if st.session_state.step1_done:
             )
 
         COUNTRY_OPTIONS = {
-            "🇹🇷 Türkiye": "Türkiye",
+            "🇹🇷 Türkiye": "Turkey",
             "🇩🇪 Almanya": "Germany",
             "🇺🇸 Amerika": "United States",
             "🇬🇧 İngiltere": "United Kingdom",
@@ -1078,7 +1078,7 @@ if st.session_state.step1_done:
             default=["🇹🇷 Türkiye"],
             help="Apify bu ülkelerdeki profilleri tarar. Birden fazla seçebilirsin."
         )
-        selected_countries = [COUNTRY_OPTIONS[lbl] for lbl in selected_country_labels] or ["Türkiye"]
+        selected_countries = [COUNTRY_OPTIONS[lbl] for lbl in selected_country_labels] or ["Turkey"]
         st.session_state.country_input_value = selected_countries
 
         with st.expander("Apify'a gönderilecek parametreleri gör"):
