@@ -408,7 +408,7 @@ defaults = {
     "automation_input_value": "",
     "country_input_value": ["Turkey"],
     "company_sizes_value": ["11 - 50", "51 - 200"],
-    "company_size_filter_enabled": False,
+    "company_size_filter_enabled": True,
     "company_size_rec": {},
     # Şirket seçimi
     "active_company": "",
