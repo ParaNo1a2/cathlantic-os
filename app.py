@@ -1214,12 +1214,23 @@ if st.session_state.step1_done:
                         if meta.get("rejected_sample"):
                             with st.expander("🔬 Debug — Reddedilen kaydın field'ları (email/isim nerede?)"):
                                 st.code(_json.dumps(meta.get("rejected_sample", {}), indent=2, ensure_ascii=False), language="json")
-                        if raw == 0:
+                        rejected_sample = meta.get("rejected_sample", {})
+                        limit_hit = any(
+                            kw in str(rejected_sample)
+                            for kw in ("exceeded", "monthly run limit", "upgrade", "free plan", "Free Apify")
+                        )
+                        if limit_hit:
+                            st.error(
+                                "🚫 **Apify free plan limiti doldu!** "
+                                "Ayda 100 lead hakkın tükendi. "
+                                "Apify hesabını upgrade et → [apify.com/pricing](https://apify.com/pricing)"
+                            )
+                        elif raw == 0:
                             st.warning(
                                 "Apollo hiç kayıt döndürmedi. Olası sebepler:\n"
                                 "- Filtrelerin kombinasyonu çok kısıtlayıcı (büyüklük, keyword, email doğrulama)\n"
                                 "- **Şirket büyüklüğü filtresini kapat** veya farklı aralık seç\n"
-                                "- 'Sadece doğrulanmış email' kapatıp tekrar dene (Türkiye'de verified email sayısı az)"
+                                "- 'Sadece doğrulanmış email' kapatıp tekrar dene"
                             )
                         else:
                             st.warning(

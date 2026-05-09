@@ -144,8 +144,14 @@ def _extract_email(item: dict) -> str:
     return ""
 
 
+_SYSTEM_MSG_PATTERNS = (
+    "🟢", "Refer to the log", "exceeded", "monthly run limit",
+    "upgrade", "Upgrade", "free plan", "Free Apify",
+)
+
 def _is_valid_lead(item: dict) -> bool:
-    if "🟢" in str(item.get("fullName", "")) or "Refer to the log" in str(item):
+    raw = str(item)
+    if any(p in raw for p in _SYSTEM_MSG_PATTERNS):
         return False
     has_name = bool(item.get("firstName") or item.get("fullName") or item.get("name"))
     has_email = bool(_extract_email(item))
