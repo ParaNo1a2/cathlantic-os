@@ -19,56 +19,106 @@ def get_client() -> anthropic.Anthropic:
 
 
 SECTOR_EXPANSION_PROMPT = """Sen Apollo.io B2B lead veritabanı için sektör araştırması yapan uzman bir growth hacker'sın.
-Ürettiğin veriler doğrudan Apollo.io'nun filtreleme parametrelerine girecek — bu yüzden formatlar Apollo'nun beklediği gibi OLMALI.
+Ürettiğin veriler doğrudan Apollo.io'nun filtreleme parametrelerine girecek — formatlar Apollo'nun beklediği gibi OLMALI.
 
 Ana sektör: "{sector}"
 Sunulan otomasyon/hizmet: "{automation}"
 
 APOLLO.IO PARAMETRELERİ VE KURALLARI:
 
-1. apollo_industries → Apollo'nun "industry" filtresi için STANDART sektör adları (EXACT MATCH)
-   Sadece bu listeden seç, uydurma:
-   "Retail", "Apparel & Fashion", "Luxury Goods & Jewelry", "Sporting Goods",
-   "Wholesale", "Consumer Goods", "Import and Export", "Furniture",
-   "Logistics and Supply Chain", "Transportation/Trucking/Railroad", "Warehousing",
-   "Internet", "Information Technology and Services", "Computer Software",
-   "E-Learning", "Professional Training & Coaching", "Management Consulting",
-   "Real Estate", "Construction", "Facilities Services",
-   "Health, Wellness and Fitness", "Hospital & Health Care", "Medical Practice",
-   "Financial Services", "Insurance", "Banking", "Accounting",
-   "Automotive", "Mechanical or Industrial Engineering",
-   "Food & Beverages", "Restaurants", "Hospitality",
-   "Marketing and Advertising", "Public Relations and Communications",
-   "Legal Services", "Law Practice",
-   "Consumer Electronics", "Electrical/Electronic Manufacturing",
-   "Pharmaceuticals", "Medical Devices",
-   "Oil & Energy", "Mining & Metals", "Chemicals",
-   "Textiles", "Plastics", "Paper & Forest Products",
-   "Events Services", "Entertainment", "Media Production"
+1. apollo_industries → Apollo'nun "industry" filtresi — SADECE aşağıdaki EXACT değerlerden seç, asla uydurma:
 
-2. keywords_en → Apollo'nun "industryKeywords" filtresi için KISA EN terimler (1-3 kelime)
-   Bu arama şirket profillerinde geçen kelimeleri bulur.
-   KURAL: Türkçe kelime YOK, 3 kelimeden uzun cümle YOK, şehir/ülke adı YOK
-   İyi örnek: "ecommerce", "dropshipping", "3PL", "fashion retail", "B2B SaaS"
-   Kötü örnek: "fashion ecommerce Turkey" (ülke adı var, uzun)
+PERAKENDE & TİCARET:
+"Retail", "Retail Apparel and Fashion", "Retail Luxury Goods and Jewelry",
+"Retail Groceries", "Retail Pharmacies", "Retail Furniture and Home Furnishings",
+"Retail Appliances, Electrical, and Electronic Equipment",
+"Retail Building Materials and Garden Equipment",
+"Retail Health and Personal Care Products", "Online and Mail Order Retail",
+"Wholesale", "Wholesale Import and Export", "Wholesale Apparel and Sewing Supplies",
+"Wholesale Motor Vehicles and Parts", "Wholesale Machinery", "Wholesale Metals and Minerals",
+"Wholesale Furniture and Home Furnishings", "Wholesale Luxury Goods and Jewelry",
+"Luxury Goods & Jewelry", "Furniture"
 
-3. keywords_tr → Sadece UI görünümü için. Apify'a GÖNDERİLMEZ. 2-3 Türkçe terim.
+LOJİSTİK & ULAŞIM:
+"Transportation, Logistics, Supply Chain and Storage", "Warehousing and Storage",
+"Freight and Package Transportation", "Truck Transportation",
+"Ground Passenger Transportation", "Maritime Transportation", "Rail Transportation"
+
+TEKNOLOJİ & BİLİŞİM:
+"Software Development", "IT Services and IT Consulting",
+"Technology, Information and Internet", "Technology, Information and Media",
+"Internet Marketplace Platforms", "Computer and Network Security",
+"Data Infrastructure and Analytics", "IT System Custom Software Development",
+"Mobile Computing Software Products", "Automation Machinery Manufacturing"
+
+PAZARLAMA & MEDYA:
+"Marketing Services", "Advertising Services",
+"Public Relations and Communications Services", "Media Production",
+"Online Audio and Video Media", "Internet Publishing"
+
+YEMEK & İÇECEK:
+"Food and Beverage Services", "Food and Beverage Retail",
+"Food and Beverage Manufacturing", "Restaurants",
+"Bars, Taverns, and Nightclubs", "Hospitality"
+
+SAĞLIK & FİTNESS:
+"Health, Wellness & Fitness", "Hospitals and Health Care",
+"Medical Practices", "Wellness and Fitness Services"
+
+EĞİTİM:
+"E-Learning Providers", "Higher Education",
+"Professional Training and Coaching", "Education"
+
+FİNANS & SİGORTA:
+"Financial Services", "Banking", "Insurance",
+"Investment Management", "Accounting"
+
+GAYRİMENKUL & İNŞAAT:
+"Real Estate", "Real Estate Agents and Brokers",
+"Construction", "Residential Building Construction",
+"Nonresidential Building Construction"
+
+OTOMOTİV:
+"Motor Vehicle Manufacturing", "Motor Vehicle Parts Manufacturing",
+"Vehicle Repair and Maintenance"
+
+İŞ HİZMETLERİ:
+"Business Consulting and Services", "Strategic Management Services",
+"Operations Consulting", "Human Resources Services",
+"Staffing and Recruiting", "Events Services",
+"Facilities Services", "Legal Services", "Law Practice"
+
+ÜRETİM & SANAYİ:
+"Manufacturing", "Apparel Manufacturing", "Textile Manufacturing",
+"Machinery Manufacturing", "Industrial Machinery Manufacturing",
+"Electrical Equipment Manufacturing", "Furniture and Home Furnishings Manufacturing"
+
+DİĞER:
+"Sporting Goods Manufacturing", "Personal Care Product Manufacturing",
+"Travel Arrangements", "Leisure, Travel & Tourism"
+
+2. keywords_en → Apollo "industryKeywords" filtresi için KISA EN terimler (1-3 kelime)
+   KURAL: Türkçe kelime YOK, 3 kelimeden uzun YOK, ülke adı YOK
+   İyi: "ecommerce", "dropshipping", "3PL", "fashion retail", "B2B SaaS"
+   Kötü: "fashion ecommerce Turkey" (ülke+uzun)
+
+3. keywords_tr → Sadece UI görünümü. Apify'a GÖNDERİLMEZ. 2-3 Türkçe terim.
 
 GENEL KURALLAR:
-- 8-12 alt/yan sektör listele, B2B potansiyeli gerçek olmalı
-- apollo_industries: her sektör için 1-3 adet (sadece listeden seç)
-- keywords_en: her sektör için 3-5 adet (kısa, spesifik)
-- keywords_tr: 2-3 adet (sadece UI)
-- reason: otomasyon+sektör uyumunu 1 cümlede anlat
+- 8-12 alt/yan sektör, B2B potansiyeli gerçek olmalı
+- apollo_industries: her sektör için 1-3 adet (sadece yukarıdaki listeden)
+- keywords_en: 3-5 adet kısa EN terim
+- keywords_tr: 2-3 adet (UI için)
+- reason: 1 cümle, satış odaklı
 
-Yanıtını YALNIZCA aşağıdaki JSON formatında ver. Başka hiçbir metin ekleme:
+Yanıtını YALNIZCA JSON formatında ver. Başka hiçbir metin ekleme:
 
 {{
   "sectors": [
     {{
       "sector_name": "Sektör adı (Türkçe)",
-      "reason": "Neden bu sektör bu otomasyona uygun (1 cümle, satış odaklı)",
-      "apollo_industries": ["Retail", "Apparel & Fashion"],
+      "reason": "Neden bu sektör bu otomasyona uygun (1 cümle)",
+      "apollo_industries": ["Retail Apparel and Fashion", "Online and Mail Order Retail"],
       "keywords_en": ["fashion retail", "ecommerce", "dropshipping"],
       "keywords_tr": ["moda e-ticaret", "online giyim"]
     }}

@@ -12,6 +12,109 @@ MAX_INDUSTRY_KEYWORDS = 100
 MAX_PERSON_TITLES     = 100
 MAX_INDUSTRIES        = 20
 
+# Apollo'nun geçerli industry değerleri (scraper validation'dan alındı)
+VALID_INDUSTRIES = {
+    # Perakende & Ticaret
+    "Retail", "Retail Apparel and Fashion", "Retail Luxury Goods and Jewelry",
+    "Retail Groceries", "Retail Pharmacies", "Retail Furniture and Home Furnishings",
+    "Retail Appliances, Electrical, and Electronic Equipment",
+    "Retail Building Materials and Garden Equipment",
+    "Retail Health and Personal Care Products", "Retail Office Equipment",
+    "Retail Office Supplies and Gifts", "Retail Motor Vehicles",
+    "Retail Recyclable Materials & Used Merchandise",
+    "Online and Mail Order Retail", "Luxury Goods & Jewelry", "Furniture",
+    "Wholesale", "Wholesale Import and Export", "Wholesale Apparel and Sewing Supplies",
+    "Wholesale Motor Vehicles and Parts", "Wholesale Machinery",
+    "Wholesale Metals and Minerals", "Wholesale Furniture and Home Furnishings",
+    "Wholesale Luxury Goods and Jewelry", "Wholesale Chemical and Allied Products",
+    "Wholesale Computer Equipment", "Wholesale Building Materials",
+    "Wholesale Drugs and Sundries", "Wholesale Footwear",
+    "Wholesale Paper Products", "Wholesale Raw Farm Products",
+    "Wholesale Hardware, Plumbing, Heating Equipment",
+    "Wholesale Photography Equipment and Supplies",
+    "Wholesale Recyclable Materials", "Wholesale Petroleum and Petroleum Products",
+    # Lojistik & Ulaşım
+    "Transportation, Logistics, Supply Chain and Storage",
+    "Warehousing and Storage", "Freight and Package Transportation",
+    "Truck Transportation", "Ground Passenger Transportation",
+    "Maritime Transportation", "Rail Transportation",
+    "Urban Transit Services", "Sightseeing Transportation",
+    "Taxi and Limousine Services", "Airlines and Aviation",
+    # Teknoloji & Bilişim
+    "Software Development", "IT Services and IT Consulting",
+    "Technology, Information and Internet", "Technology, Information and Media",
+    "Internet Marketplace Platforms", "Computer and Network Security",
+    "Data Infrastructure and Analytics", "IT System Custom Software Development",
+    "IT System Design Services", "IT System Data Services",
+    "IT System Installation and Disposal", "IT System Operations and Maintenance",
+    "IT System Testing and Evaluation", "IT System Training and Support",
+    "Mobile Computing Software Products", "Desktop Computing Software Products",
+    "Embedded Software Products", "Computer Hardware Manufacturing",
+    "Computers and Electronics Manufacturing", "Computer Networking Products",
+    "Data Security Software Products", "Business Intelligence Platforms",
+    "Automation Machinery Manufacturing", "Robotics Engineering",
+    "Telecommunications", "Wireless Services",
+    "Satellite Telecommunications", "Telecommunications Carriers",
+    # Pazarlama & Medya
+    "Marketing Services", "Advertising Services",
+    "Public Relations and Communications Services", "Media Production",
+    "Online Audio and Video Media", "Internet Publishing",
+    "Broadcast Media Production and Distribution", "Online Media",
+    "Animation and Post-production",
+    # Yemek & İçecek
+    "Food and Beverage Services", "Food and Beverage Retail",
+    "Food and Beverage Manufacturing", "Restaurants",
+    "Bars, Taverns, and Nightclubs", "Hospitality",
+    "Beverage Manufacturing", "Breweries", "Distilleries", "Wineries",
+    "Caterers", "Mobile Food Services",
+    # Sağlık & Fitness
+    "Health, Wellness & Fitness", "Hospitals and Health Care",
+    "Medical Practices", "Wellness and Fitness Services",
+    "Medical Equipment Manufacturing", "Pharmaceutical Manufacturing",
+    "Mental Health Care", "Alternative Medicine",
+    "Home Health Care Services", "Medical and Diagnostic Laboratories",
+    "Ambulance Services", "Veterinary Services",
+    # Eğitim
+    "E-Learning Providers", "Higher Education",
+    "Professional Training and Coaching", "Education",
+    "Primary and Secondary Education", "Language Schools",
+    "Education Administration Programs",
+    # Finans & Sigorta
+    "Financial Services", "Banking", "Insurance",
+    "Investment Management", "Accounting",
+    "Capital Markets", "Investment Banking",
+    "Insurance Carriers", "Insurance Agencies and Brokerages",
+    "Investment Advice", "Venture Capital and Private Equity Principals",
+    "Loan Brokers", "Funds and Trusts",
+    # Gayrimenkul & İnşaat
+    "Real Estate", "Real Estate Agents and Brokers",
+    "Construction", "Residential Building Construction",
+    "Nonresidential Building Construction",
+    "Leasing Non-residential Real Estate", "Leasing Residential Real Estate",
+    "Interior Design", "Architecture and Planning", "Civil Engineering",
+    # Otomotiv
+    "Motor Vehicle Manufacturing", "Motor Vehicle Parts Manufacturing",
+    "Vehicle Repair and Maintenance",
+    # İş Hizmetleri
+    "Business Consulting and Services", "Strategic Management Services",
+    "Operations Consulting", "Human Resources Services",
+    "Staffing and Recruiting", "Events Services",
+    "Facilities Services", "Legal Services", "Law Practice",
+    "Executive Search Services", "Outsourcing and Offshoring Consulting",
+    "Security and Investigations", "Security Systems Services",
+    # Üretim & Sanayi
+    "Manufacturing", "Apparel Manufacturing", "Textile Manufacturing",
+    "Machinery Manufacturing", "Industrial Machinery Manufacturing",
+    "Electrical Equipment Manufacturing",
+    "Furniture and Home Furnishings Manufacturing",
+    "Sporting Goods Manufacturing", "Personal Care Product Manufacturing",
+    # Diğer
+    "Travel Arrangements", "Leisure, Travel & Tourism",
+    "Non-profit Organizations", "Individual and Family Services",
+    "Community Services", "Environmental Services",
+    "Design Services", "Graphic Design",
+}
+
 # Apollo'nun geçerli companyEmployeeSize değerleri (tam liste)
 VALID_EMPLOYEE_SIZES = {
     "0 - 1", "2 - 10", "11 - 50", "51 - 200",
@@ -70,9 +173,13 @@ def run_leads_finder(
         "skipLeadsWithoutEmails": True,
     }
 
-    # Apollo standart industry adları (deduplicate + limit)
+    # Apollo standart industry adları — sadece geçerli değerleri gönder
     if industries:
-        actor_input["industry"] = list(dict.fromkeys(industries))[:MAX_INDUSTRIES]
+        valid_inds = list(dict.fromkeys(
+            ind for ind in industries if ind in VALID_INDUSTRIES
+        ))[:MAX_INDUSTRIES]
+        if valid_inds:
+            actor_input["industry"] = valid_inds
 
     # Sadece verified email toggle'ı açıksa ekle
     if only_validated_emails:
