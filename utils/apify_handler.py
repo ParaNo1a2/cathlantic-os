@@ -7,19 +7,6 @@ load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env", override=True)
 
 ACTOR_ID = "T1XDXWc1L92AfIJtd"
 
-# Karar verici seniority (Founder → Manager arası, Junior/Entry/Trainee dahil değil)
-DECISION_MAKER_SENIORITY = [
-    "Founder", "Chairman", "President", "CEO", "CXO",
-    "Vice President", "Director", "Head", "Manager", "Executive"
-]
-
-# Satış/Pazarlama/Operasyon/Finans/Ürün — HR/IT Support/Admin hariç
-DECISION_MAKER_FUNCTIONS = [
-    "Sales", "Inside Sales", "Marketing", "Digital",
-    "Operations", "Finance", "Purchase", "Product Management",
-    "Distribution", "Analytics"
-]
-
 
 def get_client(api_key: str = "") -> ApifyClient:
     key = api_key or os.getenv("APIFY_API_KEY", "")
@@ -41,24 +28,19 @@ def run_leads_finder(
     """
     Apify Leads Scraper actor'ını çalıştırır ve sonuçları döner.
 
-    Args:
-        keywords: Seçilen sektör keywordleri (TR + EN) → industryKeywords
-        job_titles: Seçilen unvanlar (TR + EN) → personTitle
-        fetch_count: Çekilecek max lead sayısı
-        only_validated_emails: True → sadece verified emailler
-        run_label: Run etiket adı (logda görünür)
-
     Returns:
         [{"first_name", "last_name", "email", "company_name",
           "company_website", "job_title", "location"}]
     """
     client = get_client(api_key)
 
+    # Sadece EN unvanları gönder — Apollo verisi İngilizce, Türkçe unvanlar eşleşmiyor
+    en_titles = [t for t in job_titles if not _is_turkish(t)]
+    titles_to_send = en_titles if en_titles else job_titles
+
     actor_input = {
         "totalResults": max(fetch_count, 100),
-        "personTitle": job_titles,
-        "seniority": DECISION_MAKER_SENIORITY,
-        "functional": DECISION_MAKER_FUNCTIONS,
+        "personTitle": titles_to_send,
         "personCountry": countries if countries else ["Turkey"],
         "industryKeywords": keywords,
         "includeEmails": True,
@@ -99,6 +81,21 @@ def _is_valid_lead(item: dict) -> bool:
     has_name = bool(item.get("firstName") or item.get("fullName"))
     is_progress_msg = "🟢" in str(item.get("fullName", "")) or "Refer to the log" in str(item)
     return has_email and has_name and not is_progress_msg
+
+
+_TURKISH_CHARS = set("ğüşıöçĞÜŞİÖÇ")
+_TURKISH_WORDS = {
+    "genel", "müdür", "direktörü", "satın", "alma", "satış", "pazarlama",
+    "operasyon", "lojistik", "tedarik", "zinciri", "ürün", "kurucu",
+    "yönetici", "ortak", "işletme", "sahibi", "e-ticaret",
+}
+
+
+def _is_turkish(text: str) -> bool:
+    lower = text.lower()
+    if any(c in text for c in _TURKISH_CHARS):
+        return True
+    return any(w in lower for w in _TURKISH_WORDS)
 
 
 def _normalize_lead(item: dict) -> dict:
