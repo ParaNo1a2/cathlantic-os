@@ -61,14 +61,18 @@ def run_leads_finder(
     )
 
     # Temel filtreler — AND koşulları, Türkiye gibi küçük pazarlarda minimum tutulmalı
+    country_list = list(dict.fromkeys(countries)) if countries else ["Turkey"]
     actor_input = {
         "totalResults":           max(fetch_count, 100),   # scraper minimum 100
         "personTitle":            titles_to_send,           # OR içinde, genişletici
-        "companyCountry":         list(dict.fromkeys(countries)) if countries else ["Turkey"],  # scraper enum: "Turkey" (Türkiye değil)
-        "industryKeywords":       keywords_to_send,         # OR içinde, genişletici
+        "personCountry":          country_list,             # kişinin bulunduğu ülke (companyCountry'den daha geniş veri)
         "includeEmails":          True,
         "skipLeadsWithoutEmails": True,
     }
+
+    # industryKeywords — opsiyonel AND filtre, boşsa gönderme
+    if keywords_to_send:
+        actor_input["industryKeywords"] = keywords_to_send
 
     # Opsiyonel AND filtreler — sadece açıkça istenirseler eklenir
     if only_validated_emails:
