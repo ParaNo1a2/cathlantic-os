@@ -7,6 +7,10 @@ load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env", override=True)
 
 ACTOR_ID = "T1XDXWc1L92AfIJtd"
 
+# Apollo scraper hard limits
+MAX_INDUSTRY_KEYWORDS = 100
+MAX_PERSON_TITLES = 50
+
 
 def get_client(api_key: str = "") -> ApifyClient:
     key = api_key or os.getenv("APIFY_API_KEY", "")
@@ -24,26 +28,36 @@ def run_leads_finder(
     countries: list[str] | None = None,
     company_sizes: list[str] | None = None,
     api_key: str = "",
-) -> list[dict]:
+) -> tuple[list[dict], dict]:
     """
     Apify Leads Scraper actor'ını çalıştırır ve sonuçları döner.
 
     Returns:
-        [{"first_name", "last_name", "email", "company_name",
-          "company_website", "job_title", "location"}]
+        (leads, meta) — meta: {"keywords_sent": int, "titles_sent": int, "truncated": bool}
     """
     client = get_client(api_key)
 
-    # Sadece EN unvanları gönder — Apollo verisi İngilizce, Türkçe unvanlar eşleşmiyor
+    # EN keyword ve unvanları filtrele — Apollo verisi İngilizce
+    en_keywords = [k for k in keywords if not _is_turkish(k)]
+    keywords_to_send = (en_keywords if en_keywords else keywords)[:MAX_INDUSTRY_KEYWORDS]
+
     en_titles = [t for t in job_titles if not _is_turkish(t)]
-    titles_to_send = en_titles if en_titles else job_titles
+    titles_to_send = (en_titles if en_titles else job_titles)[:MAX_PERSON_TITLES]
+
+    truncated = len(en_keywords) > MAX_INDUSTRY_KEYWORDS or len(en_titles) > MAX_PERSON_TITLES
 
     actor_input = {
         "totalResults": max(fetch_count, 100),
         "personTitle": titles_to_send,
         "personCountry": countries if countries else ["Turkey"],
-        "industryKeywords": keywords,
+        "industryKeywords": keywords_to_send,
         "includeEmails": True,
+    }
+
+    meta = {
+        "keywords_sent": len(keywords_to_send),
+        "titles_sent": len(titles_to_send),
+        "truncated": truncated,
     }
 
     if only_validated_emails:
@@ -73,7 +87,7 @@ def run_leads_finder(
         raise RuntimeError(f"Dataset okunamadı: {e}")
 
     leads = [_normalize_lead(item) for item in items if _is_valid_lead(item)]
-    return leads
+    return leads, meta
 
 
 def _is_valid_lead(item: dict) -> bool:

@@ -314,6 +314,14 @@ input:focus, textarea:focus {
   min-width:12px; margin:0 6px;
 }
 
+/* ── Sector table cell overflow fix ──────────────────── */
+[data-testid="stColumn"] p,
+[data-testid="stColumn"] .stMarkdown {
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  min-width: 0 !important;
+}
+
 /* ── Landing card hover via :has() ───────────────────── */
 [data-testid="stColumn"]:has(.lc-card) {
   transition:transform .3s;
@@ -393,28 +401,29 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    st.markdown("""
-    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
-      <div style="text-align:center;max-width:380px;width:100%;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:3.5rem;letter-spacing:.12em;
-                    white-space:nowrap;
-                    background:linear-gradient(135deg,#FF1744,#FF6B35);
-                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-                    margin-bottom:4px;">CATHLANTIC</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;letter-spacing:.3em;
-                    color:#7A3040;text-transform:uppercase;margin-bottom:40px;">OPERATING SYSTEM</div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
-        pwd = st.text_input("Şifre", type="password", placeholder="••••••••••••", label_visibility="collapsed")
-        if st.button("GİRİŞ", use_container_width=True, type="primary"):
-            if pwd == _APP_PASSWORD:
-                st.session_state.authenticated = True
-                st.rerun()
-            else:
-                st.error("Hatalı şifre.")
+        st.markdown("<div style='height:15vh'></div>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="text-align:center;margin-bottom:2.5rem;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:3.5rem;letter-spacing:.12em;
+                      white-space:nowrap;
+                      background:linear-gradient(135deg,#FF1744,#FF6B35);
+                      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                      margin-bottom:4px;">CATHLANTIC</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.85rem;letter-spacing:.3em;
+                      color:#7A3040;text-transform:uppercase;">OPERATING SYSTEM</div>
+        </div>
+        """, unsafe_allow_html=True)
+        with st.form("login_form", clear_on_submit=False):
+            pwd = st.text_input("Şifre", type="password", placeholder="••••••••••••", label_visibility="collapsed")
+            submitted = st.form_submit_button("GİRİŞ", use_container_width=True, type="primary")
+            if submitted:
+                if pwd == _APP_PASSWORD:
+                    st.session_state.authenticated = True
+                    st.rerun()
+                else:
+                    st.error("Hatalı şifre.")
     st.stop()
 
 # ============================================================
@@ -613,20 +622,23 @@ if st.session_state.active_company == "Phlantic" and (
     )
     _, col_form, _ = st.columns([1, 3, 1])
     with col_form:
-        ph_apify    = st.text_input("Apify API Key", type="password", placeholder="apify_api_...")
-        ph_instantly = st.text_input("Instantly API Key", type="password", placeholder="...")
-        st.caption("Anthropic AI keyi LCadreon'a aittir, ayrıca girmen gerekmez.")
-        col_back, col_save = st.columns(2)
-        with col_back:
-            if st.button("← Geri", use_container_width=True):
+        with st.form("phlantic_keys_form", clear_on_submit=False):
+            ph_apify     = st.text_input("Apify API Key", type="password", placeholder="apify_api_...")
+            ph_instantly = st.text_input("Instantly API Key", type="password", placeholder="...")
+            st.caption("Anthropic AI keyi LCadreon'a aittir, ayrıca girmen gerekmez.")
+            col_back, col_save = st.columns(2)
+            with col_back:
+                back_clicked = st.form_submit_button("← Geri", use_container_width=True)
+            with col_save:
+                save_clicked = st.form_submit_button("Devam Et →", type="primary", use_container_width=True)
+            if back_clicked:
                 st.session_state.active_company = ""
                 st.rerun()
-        with col_save:
-            if st.button("Devam Et →", type="primary", use_container_width=True):
+            if save_clicked:
                 if not ph_apify.strip() or not ph_instantly.strip():
                     st.error("Her iki keyi de gir.")
                 else:
-                    st.session_state.phlantic_apify_key    = ph_apify.strip()
+                    st.session_state.phlantic_apify_key     = ph_apify.strip()
                     st.session_state.phlantic_instantly_key = ph_instantly.strip()
                     st.rerun()
     st.stop()
@@ -944,7 +956,16 @@ if st.session_state.step1_done:
     # ============================================================
     # ADIM 2: APİFY VERI ÇEKME
     # ============================================================
-    st.header("Adım 2 — Apify Lead Çekme")
+    col_h2, col_back2 = st.columns([5, 1])
+    col_h2.header("Adım 2 — Apify Lead Çekme")
+    if col_back2.button("← Adım 1'e Dön", key="back_to_step1", use_container_width=True):
+        st.session_state.step1_done = False
+        for k in ["leads_raw", "step2_done", "leads_analyzed", "step3_done",
+                  "leads_approved", "step4_ready", "step4_done", "email_sequences",
+                  "step5_done", "instantly_campaign_id", "instantly_upload_result",
+                  "campaign_launched"]:
+            st.session_state[k] = defaults[k]
+        st.rerun()
 
     tr_titles_all = [t["tr"] for t in st.session_state.selected_job_titles]
     en_titles_all = [t["en"] for t in st.session_state.selected_job_titles]
@@ -1076,7 +1097,7 @@ if st.session_state.step1_done:
         if st.button("🚀 Apify'ı Çalıştır ve Lead Çek", type="primary", use_container_width=True):
             with st.spinner("Apify çalışıyor... Lead'ler çekiliyor (bu 1-5 dakika sürebilir)..."):
                 try:
-                    leads = run_leads_finder(
+                    leads, meta = run_leads_finder(
                         keywords=st.session_state.selected_keywords,
                         job_titles=all_job_titles,
                         fetch_count=int(fetch_count),
@@ -1086,10 +1107,15 @@ if st.session_state.step1_done:
                         company_sizes=st.session_state.company_sizes_value,
                         api_key=_apify_key,
                     )
+                    if meta.get("truncated"):
+                        st.warning(
+                            f"⚠️ Scraper limiti: {meta['keywords_sent']} keyword ve "
+                            f"{meta['titles_sent']} unvan gönderildi (fazlası otomatik kesildi)."
+                        )
                     if not leads:
                         st.error(
                             "Apify 0 lead döndürdü. Şunları dene: "
-                            "keyword sayısını artır, şirket büyüklüğü filtresini gevşet, "
+                            "şirket büyüklüğü filtresini gevşet, "
                             "'Sadece doğrulanmış email' toggle'ını kapat veya farklı ülke seç."
                         )
                     else:
@@ -1142,7 +1168,15 @@ if st.session_state.step1_done:
         # ============================================================
         # ADIM 3: WEB ANALİZİ, FİLTRELEME VE CİNSİYET TESPİTİ
         # ============================================================
-        st.header("Adım 3 — Web Analizi, Filtreleme & Cinsiyet Tespiti")
+        col_h3, col_back3 = st.columns([5, 1])
+        col_h3.header("Adım 3 — Web Analizi, Filtreleme & Cinsiyet Tespiti")
+        if col_back3.button("← Adım 2'ye Dön", key="back_to_step2", use_container_width=True):
+            for k in ["step2_done", "leads_raw", "leads_analyzed", "step3_done",
+                      "leads_approved", "step4_ready", "step4_done", "email_sequences",
+                      "step5_done", "instantly_campaign_id", "instantly_upload_result",
+                      "campaign_launched"]:
+                st.session_state[k] = defaults[k]
+            st.rerun()
         st.markdown(
             "Her lead'in web sitesi otomatik okunur ve Haiku ile analiz edilir. "
             "**Alakası Yok** olanlar elenir, **Belki** olanları sen onaylarsın."
@@ -1270,7 +1304,14 @@ if st.session_state.step1_done:
                 # ============================================================
                 # ADIM 4: SEKTÖR BAZLI E-POSTA SEKANS YAZIMI
                 # ============================================================
-                st.header("Adım 4 — E-posta Sekansı Yazımı")
+                col_h4, col_back4 = st.columns([5, 1])
+                col_h4.header("Adım 4 — E-posta Sekansı Yazımı")
+                if col_back4.button("← Adım 3'e Dön", key="back_to_step3", use_container_width=True):
+                    for k in ["step4_ready", "step4_done", "email_sequences", "step5_done",
+                              "leads_approved", "instantly_campaign_id", "instantly_upload_result",
+                              "campaign_launched"]:
+                        st.session_state[k] = defaults[k]
+                    st.rerun()
                 st.markdown(
                     f"**{st.session_state.sector_input_value}** sektörüne özel, "
                     "yüksek dönüşümlü soğuk e-posta sekansları üretiliyor. "
@@ -1373,7 +1414,14 @@ if st.session_state.step1_done:
                     # ============================================================
                     # ADIM 5: INSTANTLY.AI AKTARIM
                     # ============================================================
-                    st.header("Adım 5 — Instantly.ai'a Aktar")
+                    col_h5, col_back5 = st.columns([5, 1])
+                    col_h5.header("Adım 5 — Instantly.ai'a Aktar")
+                    if col_back5.button("← Adım 4'e Dön", key="back_to_step4", use_container_width=True):
+                        for k in ["step4_done", "step5_done", "instantly_campaign_id",
+                                  "instantly_upload_result", "campaign_launched",
+                                  "instantly_accounts_cache", "instantly_campaigns_cache"]:
+                            st.session_state[k] = defaults[k]
+                        st.rerun()
                     st.markdown(
                         f"**{len(st.session_state.leads_approved)}** onaylı lead ve oluşturulan sekanslar "
                         "Instantly.ai'a aktarılacak. Yeni kampanya oluşturabilir veya mevcut birine ekleyebilirsin."
