@@ -397,6 +397,7 @@ if not st.session_state.authenticated:
     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
       <div style="text-align:center;max-width:380px;width:100%;">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:3.5rem;letter-spacing:.12em;
+                    white-space:nowrap;
                     background:linear-gradient(135deg,#FF1744,#FF6B35);
                     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
                     margin-bottom:4px;">CATHLANTIC</div>
