@@ -7,115 +7,11 @@ load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env", override=True)
 
 ACTOR_ID = "T1XDXWc1L92AfIJtd"
 
-# Scraper hard limits (input-schema'dan)
+# Scraper hard limits (input-schema'dan: totalResults 100-30000, arrays max 100)
 MAX_INDUSTRY_KEYWORDS = 100
 MAX_PERSON_TITLES     = 100
-MAX_INDUSTRIES        = 20
 
-# Apollo'nun geçerli industry değerleri (scraper validation'dan alındı)
-VALID_INDUSTRIES = {
-    # Perakende & Ticaret
-    "Retail", "Retail Apparel and Fashion", "Retail Luxury Goods and Jewelry",
-    "Retail Groceries", "Retail Pharmacies", "Retail Furniture and Home Furnishings",
-    "Retail Appliances, Electrical, and Electronic Equipment",
-    "Retail Building Materials and Garden Equipment",
-    "Retail Health and Personal Care Products", "Retail Office Equipment",
-    "Retail Office Supplies and Gifts", "Retail Motor Vehicles",
-    "Retail Recyclable Materials & Used Merchandise",
-    "Online and Mail Order Retail", "Luxury Goods & Jewelry", "Furniture",
-    "Wholesale", "Wholesale Import and Export", "Wholesale Apparel and Sewing Supplies",
-    "Wholesale Motor Vehicles and Parts", "Wholesale Machinery",
-    "Wholesale Metals and Minerals", "Wholesale Furniture and Home Furnishings",
-    "Wholesale Luxury Goods and Jewelry", "Wholesale Chemical and Allied Products",
-    "Wholesale Computer Equipment", "Wholesale Building Materials",
-    "Wholesale Drugs and Sundries", "Wholesale Footwear",
-    "Wholesale Paper Products", "Wholesale Raw Farm Products",
-    "Wholesale Hardware, Plumbing, Heating Equipment",
-    "Wholesale Photography Equipment and Supplies",
-    "Wholesale Recyclable Materials", "Wholesale Petroleum and Petroleum Products",
-    # Lojistik & Ulaşım
-    "Transportation, Logistics, Supply Chain and Storage",
-    "Warehousing and Storage", "Freight and Package Transportation",
-    "Truck Transportation", "Ground Passenger Transportation",
-    "Maritime Transportation", "Rail Transportation",
-    "Urban Transit Services", "Sightseeing Transportation",
-    "Taxi and Limousine Services", "Airlines and Aviation",
-    # Teknoloji & Bilişim
-    "Software Development", "IT Services and IT Consulting",
-    "Technology, Information and Internet", "Technology, Information and Media",
-    "Internet Marketplace Platforms", "Computer and Network Security",
-    "Data Infrastructure and Analytics", "IT System Custom Software Development",
-    "IT System Design Services", "IT System Data Services",
-    "IT System Installation and Disposal", "IT System Operations and Maintenance",
-    "IT System Testing and Evaluation", "IT System Training and Support",
-    "Mobile Computing Software Products", "Desktop Computing Software Products",
-    "Embedded Software Products", "Computer Hardware Manufacturing",
-    "Computers and Electronics Manufacturing", "Computer Networking Products",
-    "Data Security Software Products", "Business Intelligence Platforms",
-    "Automation Machinery Manufacturing", "Robotics Engineering",
-    "Telecommunications", "Wireless Services",
-    "Satellite Telecommunications", "Telecommunications Carriers",
-    # Pazarlama & Medya
-    "Marketing Services", "Advertising Services",
-    "Public Relations and Communications Services", "Media Production",
-    "Online Audio and Video Media", "Internet Publishing",
-    "Broadcast Media Production and Distribution", "Online Media",
-    "Animation and Post-production",
-    # Yemek & İçecek
-    "Food and Beverage Services", "Food and Beverage Retail",
-    "Food and Beverage Manufacturing", "Restaurants",
-    "Bars, Taverns, and Nightclubs", "Hospitality",
-    "Beverage Manufacturing", "Breweries", "Distilleries", "Wineries",
-    "Caterers", "Mobile Food Services",
-    # Sağlık & Fitness
-    "Health, Wellness & Fitness", "Hospitals and Health Care",
-    "Medical Practices", "Wellness and Fitness Services",
-    "Medical Equipment Manufacturing", "Pharmaceutical Manufacturing",
-    "Mental Health Care", "Alternative Medicine",
-    "Home Health Care Services", "Medical and Diagnostic Laboratories",
-    "Ambulance Services", "Veterinary Services",
-    # Eğitim
-    "E-Learning Providers", "Higher Education",
-    "Professional Training and Coaching", "Education",
-    "Primary and Secondary Education", "Language Schools",
-    "Education Administration Programs",
-    # Finans & Sigorta
-    "Financial Services", "Banking", "Insurance",
-    "Investment Management", "Accounting",
-    "Capital Markets", "Investment Banking",
-    "Insurance Carriers", "Insurance Agencies and Brokerages",
-    "Investment Advice", "Venture Capital and Private Equity Principals",
-    "Loan Brokers", "Funds and Trusts",
-    # Gayrimenkul & İnşaat
-    "Real Estate", "Real Estate Agents and Brokers",
-    "Construction", "Residential Building Construction",
-    "Nonresidential Building Construction",
-    "Leasing Non-residential Real Estate", "Leasing Residential Real Estate",
-    "Interior Design", "Architecture and Planning", "Civil Engineering",
-    # Otomotiv
-    "Motor Vehicle Manufacturing", "Motor Vehicle Parts Manufacturing",
-    "Vehicle Repair and Maintenance",
-    # İş Hizmetleri
-    "Business Consulting and Services", "Strategic Management Services",
-    "Operations Consulting", "Human Resources Services",
-    "Staffing and Recruiting", "Events Services",
-    "Facilities Services", "Legal Services", "Law Practice",
-    "Executive Search Services", "Outsourcing and Offshoring Consulting",
-    "Security and Investigations", "Security Systems Services",
-    # Üretim & Sanayi
-    "Manufacturing", "Apparel Manufacturing", "Textile Manufacturing",
-    "Machinery Manufacturing", "Industrial Machinery Manufacturing",
-    "Electrical Equipment Manufacturing",
-    "Furniture and Home Furnishings Manufacturing",
-    "Sporting Goods Manufacturing", "Personal Care Product Manufacturing",
-    # Diğer
-    "Travel Arrangements", "Leisure, Travel & Tourism",
-    "Non-profit Organizations", "Individual and Family Services",
-    "Community Services", "Environmental Services",
-    "Design Services", "Graphic Design",
-}
-
-# Apollo'nun geçerli companyEmployeeSize değerleri (tam liste)
+# Apollo'nun geçerli companyEmployeeSize değerleri (tam liste, boşluklu format zorunlu)
 VALID_EMPLOYEE_SIZES = {
     "0 - 1", "2 - 10", "11 - 50", "51 - 200",
     "201 - 500", "501 - 1000", "1001 - 5000", "5001 - 10000", "10000+",
@@ -137,13 +33,13 @@ def run_leads_finder(
     run_label: str = "LCadreon Run",
     countries: list[str] | None = None,
     company_sizes: list[str] | None = None,
-    industries: list[str] | None = None,
     api_key: str = "",
 ) -> tuple[list[dict], dict]:
     """
     Apify peakydev/leads-scraper actor'ını çalıştırır.
 
     Parametre isimleri ve değerleri aktörün input-schema'sına birebir uyar.
+    totalResults: 100-30000 | personTitle: max 100 | industryKeywords: max 100
     Returns: (leads, meta) — meta: {"keywords_sent", "titles_sent", "truncated"}
     """
     client = get_client(api_key)
@@ -164,26 +60,27 @@ def run_leads_finder(
         or len(en_titles) > MAX_PERSON_TITLES
     )
 
+    # Temel filtreler — AND koşulları, Türkiye gibi küçük pazarlarda minimum tutulmalı
     actor_input = {
-        "totalResults":           max(fetch_count, 100),
-        "personTitle":            titles_to_send,
+        "totalResults":           max(fetch_count, 100),   # scraper minimum 100
+        "personTitle":            titles_to_send,           # OR içinde, genişletici
         "companyCountry":         list(dict.fromkeys(countries)) if countries else ["Turkey"],
-        "industryKeywords":       keywords_to_send,
+        "industryKeywords":       keywords_to_send,         # OR içinde, genişletici
         "includeEmails":          True,
         "skipLeadsWithoutEmails": True,
     }
 
-    # Sadece verified email toggle'ı açıksa ekle
+    # Opsiyonel AND filtreler — sadece açıkça istenirseler eklenir
     if only_validated_emails:
         actor_input["contactEmailStatus"] = "verified"
 
-    # Şirket büyüklüğü (sadece geçerli değerler)
     if valid_sizes:
         actor_input["companyEmployeeSize"] = valid_sizes
 
     meta = {
         "keywords_sent": len(keywords_to_send),
         "titles_sent":   len(titles_to_send),
+        "sizes_sent":    len(valid_sizes),
         "truncated":     truncated,
     }
 
@@ -216,7 +113,6 @@ def _is_valid_lead(item: dict) -> bool:
     if "🟢" in str(item.get("fullName", "")) or "Refer to the log" in str(item):
         return False
     has_name = bool(item.get("firstName") or item.get("fullName") or item.get("name"))
-    # Email: tek alan veya dizi olabilir
     has_email = bool(
         item.get("email")
         or (isinstance(item.get("emails"), list) and item["emails"])
@@ -226,7 +122,6 @@ def _is_valid_lead(item: dict) -> bool:
 
 
 def _normalize_lead(item: dict) -> dict:
-    # Email: önce tekil alan, yoksa dizi ilk elemanı, yoksa workEmail
     email = (
         item.get("email")
         or (item.get("emails") or [""])[0]
@@ -241,20 +136,19 @@ def _normalize_lead(item: dict) -> dict:
     if website and not website.startswith("http"):
         website = "https://" + website
 
-    # first_name: önce firstName, yoksa fullName'den ilk kelime
     full_name = item.get("fullName") or item.get("name") or ""
     first_name = item.get("firstName") or (full_name.split()[0] if full_name else "")
     last_name  = item.get("lastName")  or (" ".join(full_name.split()[1:]) if full_name else "")
 
     return {
-        "first_name":    first_name.strip(),
-        "last_name":     last_name.strip(),
-        "email":         email.strip().lower(),
-        "company_name":  item.get("organizationName") or item.get("companyName") or "",
+        "first_name":      first_name.strip(),
+        "last_name":       last_name.strip(),
+        "email":           email.strip().lower(),
+        "company_name":    item.get("organizationName") or item.get("companyName") or "",
         "company_website": website,
-        "job_title":     item.get("position") or item.get("title") or item.get("jobTitle") or "",
-        "location":      item.get("city") or item.get("country") or "",
-        "linkedin_url":  item.get("linkedinUrl") or item.get("linkedin") or "",
+        "job_title":       item.get("position") or item.get("title") or item.get("jobTitle") or "",
+        "location":        item.get("city") or item.get("country") or "",
+        "linkedin_url":    item.get("linkedinUrl") or item.get("linkedin") or "",
     }
 
 

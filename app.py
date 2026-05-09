@@ -408,6 +408,7 @@ defaults = {
     "automation_input_value": "",
     "country_input_value": ["Turkey"],
     "company_sizes_value": ["11 - 50", "51 - 200"],
+    "company_size_filter_enabled": False,
     "company_size_rec": {},
     # Şirket seçimi
     "active_company": "",
@@ -962,8 +963,8 @@ if st.session_state.sectors_approved:
         with col_info2:
             st.info(
                 f"**{len(selected_titles)}** unvan seçildi · "
-                f"Apify'a TR + EN olarak gönderilecek "
-                f"(**{len(selected_titles) * 2}** title)"
+                f"Apify'a **{len(selected_titles)}** EN unvan gönderilecek "
+                f"(Türkçe unvanlar Apollo DB'de geçersiz, otomatik filtrelenir)"
             )
         with col_btn2:
             if st.button("✅ Onayla ve Adım 2'ye İlerle", type="primary", use_container_width=True):
@@ -1040,8 +1041,8 @@ if st.session_state.step1_done:
         with col_a:
             fetch_count = st.number_input(
                 "Çekilecek max lead sayısı",
-                min_value=10, max_value=5000, value=100, step=10,
-                help="Apify her lead için ~$0.0015 ücret alır."
+                min_value=100, max_value=30000, value=100, step=100,
+                help="Scraper minimum 100, maksimum 30.000. Her ~1000 lead ≈ $1.5 maliyet."
             )
         with col_b:
             only_validated = st.toggle(
@@ -1094,70 +1095,84 @@ if st.session_state.step1_done:
                 st.caption("**Unvanlar EN**")
                 st.code("\n".join(en_titles_all), language=None)
             st.caption(
-                f"**Lokasyon:** {', '.join(selected_country_labels)} · "
-                "**Email:** " + ("Sadece Verified" if only_validated else "Email olanlar")
+                f"**companyCountry:** {', '.join(selected_country_labels)} · "
+                "**Email:** " + ("Sadece Verified" if only_validated else "Email olanlar") +
+                " · **Büyüklük filtresi:** " + (
+                    " · ".join(st.session_state.company_sizes_value)
+                    if st.session_state.company_size_filter_enabled
+                    else "Kapalı (tüm büyüklükler)"
+                )
             )
 
     with tab_size:
-        st.markdown(
-            "Yapay zeka, seçtiğin sektör ve otomasyona göre en uygun şirket büyüklüklerini önerir. "
-            "İstediğini değiştirebilirsin."
+        size_filter_enabled = st.toggle(
+            "Şirket büyüklüğü filtresi",
+            value=st.session_state.company_size_filter_enabled,
+            help="Kapalı = Apollo tüm büyüklükteki şirketleri tarar (önerilir, daha fazla lead). Açık = belirli aralıkları filtrele."
         )
+        st.session_state.company_size_filter_enabled = size_filter_enabled
 
-        # AI önerisi — bir kez üretilir, session'da saklanır
-        if not st.session_state.company_size_rec:
-            with st.spinner("AI şirket büyüklüğü önerisi üretiyor..."):
-                rec = recommend_company_sizes(
-                    sector=st.session_state.sector_input_value,
-                    automation=st.session_state.automation_input_value,
-                )
-                st.session_state.company_size_rec = rec
-
-        rec = st.session_state.company_size_rec
-        recommended_values = rec.get("recommended", ["11,50", "51,200"])
-        reasoning = rec.get("reasoning", {})
-
-        st.markdown("#### AI Önerisi")
-        size_val_to_label = {o["value"]: o["label"] for o in COMPANY_SIZE_OPTIONS}
-
-        rec_labels = [size_val_to_label.get(v, v) for v in recommended_values]
-        if reasoning:
-            for val in recommended_values:
-                label = size_val_to_label.get(val, val)
-                reason = reasoning.get(val, "")
-                st.success(f"**{label}** — {reason}")
-        else:
-            st.info("Önerilen: " + " · ".join(rec_labels))
-
-        st.markdown("#### Seçimini Yap")
-        st.caption("AI önerileri işaretli gelir, istediğini ekleyip çıkarabilirsin.")
-
-        selected_sizes = []
-        cols_size = st.columns(2)
-        for i, opt in enumerate(COMPANY_SIZE_OPTIONS):
-            col = cols_size[i % 2]
-            is_recommended = opt["value"] in recommended_values
-            default_val = opt["value"] in st.session_state.company_sizes_value \
-                if st.session_state.company_sizes_value != ["11,50", "51,200"] \
-                else is_recommended
-            tag = " ✨ AI önerisi" if is_recommended else ""
-            checked = col.checkbox(
-                f"{opt['label']}{tag}",
-                value=default_val,
-                key=f"size_{opt['value']}",
+        if not size_filter_enabled:
+            st.info(
+                "**Filtre kapalı** — Apollo tüm büyüklükteki şirketleri tarar. "
+                "Türkiye gibi küçük Apollo pazarlarında bu mod çok daha fazla lead getirir. "
+                "Sadece büyük/kurumsal şirketleri hedefliyorsan filreyi aç."
             )
-            if checked:
-                selected_sizes.append(opt["value"])
+        else:
+            st.markdown(
+                "Yapay zeka, seçtiğin sektör ve otomasyona göre en uygun büyüklükleri önerir."
+            )
 
-        if not selected_sizes:
-            st.warning("En az bir büyüklük seçmelisin — AI önerisi otomatik uygulanacak.")
-            selected_sizes = recommended_values
+            if not st.session_state.company_size_rec:
+                with st.spinner("AI şirket büyüklüğü önerisi üretiyor..."):
+                    rec = recommend_company_sizes(
+                        sector=st.session_state.sector_input_value,
+                        automation=st.session_state.automation_input_value,
+                    )
+                    st.session_state.company_size_rec = rec
 
-        st.session_state.company_sizes_value = selected_sizes
-        st.info(
-            f"**{len(selected_sizes)}** büyüklük seçildi: "
-            + " · ".join(size_val_to_label.get(v, v) for v in selected_sizes)
-        )
+            rec = st.session_state.company_size_rec
+            recommended_values = rec.get("recommended", ["11 - 50", "51 - 200"])
+            reasoning = rec.get("reasoning", {})
+
+            st.markdown("#### AI Önerisi")
+            size_val_to_label = {o["value"]: o["label"] for o in COMPANY_SIZE_OPTIONS}
+
+            if reasoning:
+                for val in recommended_values:
+                    label = size_val_to_label.get(val, val)
+                    reason = reasoning.get(val, "")
+                    st.success(f"**{label}** — {reason}")
+            else:
+                rec_labels = [size_val_to_label.get(v, v) for v in recommended_values]
+                st.info("Önerilen: " + " · ".join(rec_labels))
+
+            st.markdown("#### Seçimini Yap")
+            st.caption("AI önerileri işaretli gelir, istediğini ekleyip çıkarabilirsin.")
+
+            selected_sizes = []
+            cols_size = st.columns(2)
+            for i, opt in enumerate(COMPANY_SIZE_OPTIONS):
+                col = cols_size[i % 2]
+                is_recommended = opt["value"] in recommended_values
+                tag = " ✨ AI önerisi" if is_recommended else ""
+                checked = col.checkbox(
+                    f"{opt['label']}{tag}",
+                    value=is_recommended,
+                    key=f"size_{opt['value']}",
+                )
+                if checked:
+                    selected_sizes.append(opt["value"])
+
+            if not selected_sizes:
+                st.warning("En az bir büyüklük seçmelisin — AI önerisi otomatik uygulanacak.")
+                selected_sizes = recommended_values
+
+            st.session_state.company_sizes_value = selected_sizes
+            st.info(
+                f"**{len(selected_sizes)}** büyüklük seçildi: "
+                + " · ".join(size_val_to_label.get(v, v) for v in selected_sizes)
+            )
 
     if not st.session_state.step2_done:
         if st.button("🚀 Apify'ı Çalıştır ve Lead Çek", type="primary", use_container_width=True):
@@ -1170,8 +1185,11 @@ if st.session_state.step1_done:
                         only_validated_emails=only_validated,
                         run_label=run_label,
                         countries=st.session_state.country_input_value,
-                        company_sizes=st.session_state.company_sizes_value,
-                        industries=st.session_state.selected_apollo_industries,
+                        company_sizes=(
+                            st.session_state.company_sizes_value
+                            if st.session_state.company_size_filter_enabled
+                            else []
+                        ),
                         api_key=_apify_key,
                     )
                     if meta.get("truncated"):
