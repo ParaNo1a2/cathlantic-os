@@ -115,26 +115,39 @@ def run_leads_finder(
     return leads, meta
 
 
+def _extract_email(item: dict) -> str:
+    """Apollo farklı field adlarıyla email dönebilir — hepsini dene."""
+    # Tekil string alanlar
+    for field in ("email", "workEmail", "emailAddress", "email_address",
+                  "primaryEmail", "personalEmail", "contactEmail"):
+        val = item.get(field)
+        if val and isinstance(val, str) and "@" in val:
+            return val.strip().lower()
+    # Dizi alanlar
+    for field in ("emails",):
+        arr = item.get(field)
+        if isinstance(arr, list) and arr:
+            first = arr[0]
+            if isinstance(first, str) and "@" in first:
+                return first.strip().lower()
+            if isinstance(first, dict):
+                for key in ("email", "address", "value", "emailAddress"):
+                    val = first.get(key, "")
+                    if val and "@" in str(val):
+                        return str(val).strip().lower()
+    return ""
+
+
 def _is_valid_lead(item: dict) -> bool:
-    # İlerleme mesajlarını filtrele
     if "🟢" in str(item.get("fullName", "")) or "Refer to the log" in str(item):
         return False
     has_name = bool(item.get("firstName") or item.get("fullName") or item.get("name"))
-    has_email = bool(
-        item.get("email")
-        or (isinstance(item.get("emails"), list) and item["emails"])
-        or item.get("workEmail")
-    )
+    has_email = bool(_extract_email(item))
     return has_name and has_email
 
 
 def _normalize_lead(item: dict) -> dict:
-    email = (
-        item.get("email")
-        or (item.get("emails") or [""])[0]
-        or item.get("workEmail", "")
-    )
-
+    email  = _extract_email(item)
     website = (
         item.get("organizationWebsite")
         or item.get("companyWebsite")
@@ -164,18 +177,23 @@ def _normalize_lead(item: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 _TURKISH_CHARS = set("ğüşıöçĞÜŞİÖÇ")
-# Sadece Türkçe karakteri olmayan ama Türkçe olan kelimeler (tam kelime eşleşmesi)
+# Türkçe kelimeler — hem özel karakterli hem ASCII (tam kelime eşleşmesi ile kontrol edilir)
 _TURKISH_WORDS = {
+    # Özel karakterli
     "genel", "müdür", "satın", "alma", "satış", "pazarlama",
     "operasyon", "lojistik", "tedarik", "zinciri", "kurucu",
     "yönetici", "ortak", "sahibi", "mağaza", "giyim", "moda",
     "depolama", "kargo", "takip", "tedarikçi",
+    # ASCII Türkçe (özel karakter yok ama İngilizce değil)
+    "kozmetik", "mobilya", "toptan", "evcil", "hayvan",
+    "ticaret", "ithalat", "ihracat", "bebek", "oyuncak",
+    "gıda", "tekstil", "hizmet", "yazılım", "danışmanlık",
 }
 
 
 def _is_turkish(text: str) -> bool:
     if any(c in text for c in _TURKISH_CHARS):
         return True
-    # Tam kelime eşleşmesi — substring değil (örn: "son" in "person" olmamalı)
+    # Tam kelime eşleşmesi — substring değil ("son" → "person"'ı tutmamalı)
     words = set(text.lower().split())
     return bool(words & _TURKISH_WORDS)

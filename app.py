@@ -400,6 +400,7 @@ AUTOMATION_PRESETS = [
 defaults = {
     "sectors_data": [],
     "selected_keywords": [],
+    "selected_en_keywords": [],
     "selected_apollo_industries": [],
     "selected_sector_names": [],
     "job_titles_data": [],
@@ -858,14 +859,17 @@ if st.session_state.sectors_data and not st.session_state.sectors_approved:
                 st.warning("En az bir sektör seçmelisin.")
             else:
                 all_keywords = []
+                all_en_keywords = []
                 all_names = []
                 all_apollo_industries = []
                 for s in selected_sectors:
                     all_keywords.extend(s.get("keywords_tr", []))
                     all_keywords.extend(s.get("keywords_en", []))
+                    all_en_keywords.extend(s.get("keywords_en", []))  # sadece EN — Apify'a bunlar gider
                     all_names.append(s["sector_name"])
                     all_apollo_industries.extend(s.get("apollo_industries", []))
                 st.session_state.selected_keywords = list(dict.fromkeys(all_keywords))
+                st.session_state.selected_en_keywords = list(dict.fromkeys(all_en_keywords))
                 st.session_state.selected_apollo_industries = list(dict.fromkeys(all_apollo_industries))
                 st.session_state.selected_sector_names = all_names
                 st.session_state.sectors_approved = True
@@ -1179,7 +1183,7 @@ if st.session_state.step1_done:
             with st.spinner("Apify çalışıyor... Lead'ler çekiliyor (bu 1-5 dakika sürebilir)..."):
                 try:
                     leads, meta = run_leads_finder(
-                        keywords=st.session_state.selected_keywords,
+                        keywords=st.session_state.selected_en_keywords,
                         job_titles=all_job_titles,
                         fetch_count=int(fetch_count),
                         only_validated_emails=only_validated,
