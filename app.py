@@ -387,7 +387,7 @@ for key, val in defaults.items():
 # ============================================================
 # LOGIN GATE
 # ============================================================
-_APP_PASSWORD = st.secrets.get("APP_PASSWORD", "cathlantic2026")
+_APP_PASSWORD = st.secrets.get("APP_PASSWORD", "beyza1234")
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
