@@ -64,7 +64,7 @@ def run_leads_finder(
         actor_input["contactEmailStatus"] = "verified"
 
     if company_sizes:
-        actor_input["organizationNumEmployeesRanges"] = company_sizes
+        actor_input["companyEmployeeSize"] = company_sizes
 
     try:
         run = client.actor(ACTOR_ID).call(run_input=actor_input, timeout_secs=600)

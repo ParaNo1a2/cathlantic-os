@@ -257,14 +257,14 @@ def analyze_lead(first_name: str, website_text: str, target_sector: str, automat
 # ---------------------------------------------------------------------------
 
 COMPANY_SIZE_OPTIONS = [
-    {"label": "🏠 Mikro (1–10 çalışan)",        "value": "1,10"},
-    {"label": "🏪 Küçük (11–50 çalışan)",        "value": "11,50"},
-    {"label": "🏢 Orta-Küçük (51–200 çalışan)",  "value": "51,200"},
-    {"label": "🏬 Orta-Büyük (201–500 çalışan)", "value": "201,500"},
-    {"label": "🏛️ Büyük (501–1.000 çalışan)",    "value": "501,1000"},
-    {"label": "🏗️ Kurumsal (1.001–5.000)",        "value": "1001,5000"},
-    {"label": "🌐 Büyük Kurumsal (5.001–10.000)", "value": "5001,10000"},
-    {"label": "🌍 Dev Şirket (10.000+)",           "value": "10001"},
+    {"label": "🏠 Mikro (1–10 çalışan)",        "value": "1-10"},
+    {"label": "🏪 Küçük (11–50 çalışan)",        "value": "11-50"},
+    {"label": "🏢 Orta-Küçük (51–200 çalışan)",  "value": "51-200"},
+    {"label": "🏬 Orta-Büyük (201–500 çalışan)", "value": "201-500"},
+    {"label": "🏛️ Büyük (501–1.000 çalışan)",    "value": "501-1000"},
+    {"label": "🏗️ Kurumsal (1.001–5.000)",        "value": "1001-5000"},
+    {"label": "🌐 Büyük Kurumsal (5.001–10.000)", "value": "5001-10000"},
+    {"label": "🌍 Dev Şirket (10.000+)",           "value": "10000+"},
 ]
 
 COMPANY_SIZE_PROMPT = """Sen B2B satış stratejisti ve growth hacker'sın.
@@ -280,7 +280,7 @@ Seçenekler ve value'ları:
 
 KURALLAR:
 - 2 ile 4 arasında büyüklük seç — fazlası odak kaybı, azı lead sayısını kısar
-- "recommended" listesinde sadece value'ları yaz (örn: "1,10")
+- "recommended" listesinde sadece value'ları yaz (örn: "1-10")
 - Her seçim için kısa ve somut neden yaz (satış stratejisi açısından)
 - Çok büyük şirketlere satmak genellikle satış döngüsünü uzatır — küçük KOBİ'ler daha hızlı karar verir
 
