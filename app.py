@@ -1046,7 +1046,7 @@ if st.session_state.step1_done:
         with col_b:
             only_validated = st.toggle(
                 "Sadece doğrulanmış email",
-                value=True,
+                value=False,
                 help="Açık = yalnızca 'validated' emailler. Kapalı = tüm emailler dahil."
             )
         with col_c:

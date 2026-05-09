@@ -167,19 +167,11 @@ def run_leads_finder(
     actor_input = {
         "totalResults":           max(fetch_count, 100),
         "personTitle":            titles_to_send,
-        "personCountry":          list(dict.fromkeys(countries)) if countries else ["Turkey"],
+        "companyCountry":         list(dict.fromkeys(countries)) if countries else ["Turkey"],
         "industryKeywords":       keywords_to_send,
         "includeEmails":          True,
         "skipLeadsWithoutEmails": True,
     }
-
-    # Apollo standart industry adları — sadece geçerli değerleri gönder
-    if industries:
-        valid_inds = list(dict.fromkeys(
-            ind for ind in industries if ind in VALID_INDUSTRIES
-        ))[:MAX_INDUSTRIES]
-        if valid_inds:
-            actor_input["industry"] = valid_inds
 
     # Sadece verified email toggle'ı açıksa ekle
     if only_validated_emails:
@@ -192,7 +184,6 @@ def run_leads_finder(
     meta = {
         "keywords_sent": len(keywords_to_send),
         "titles_sent":   len(titles_to_send),
-        "industries_sent": len(actor_input.get("industry", [])),
         "truncated":     truncated,
     }
 
