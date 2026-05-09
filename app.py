@@ -90,9 +90,38 @@ body::after {
   pointer-events:none; z-index:9999;
 }
 
-[class*="css"], p, span, label, div {
+p, label {
   font-family:'Barlow',sans-serif!important;
   color:var(--text);
+}
+/* span ve div'de sadece renk — font-family HAYIR (expander icon bozuluyor) */
+span, div {
+  color:var(--text);
+}
+/* Streamlit metin container'larına Barlow aç */
+[data-testid="stMarkdownContainer"],
+[data-testid="stMarkdownContainer"] *,
+[data-testid="stText"],
+[data-testid="stCaptionContainer"],
+.stAlert p,
+.stSuccess p, .stInfo p, .stWarning p, .stError p,
+[data-testid="stMetricLabel"],
+[data-testid="stMetricValue"],
+[data-testid="stMetricDelta"],
+[data-baseweb="select"] span,
+[data-baseweb="select"] div,
+[data-testid="stCheckbox"] span,
+[data-testid="stCheckbox"] p,
+[data-testid="stRadio"] span,
+[data-testid="stRadio"] p,
+[data-testid="stNumberInput"] label,
+[data-testid="stTextInput"] label,
+[data-testid="stTextArea"] label,
+[data-testid="stMultiSelect"] label,
+[data-testid="stSelectbox"] label,
+[data-testid="stToggle"] label,
+[data-testid="stSlider"] label {
+  font-family:'Barlow',sans-serif!important;
 }
 h1,h2,h3,h4 {
   font-family:'Bebas Neue',sans-serif!important;
@@ -224,6 +253,23 @@ input:focus, textarea:focus {
 [data-testid="stExpander"]:hover {
   border-color:#3A1624!important;
   box-shadow:0 0 20px rgba(255,23,68,.06)!important;
+}
+/* Expander label metni — Barlow fontunu açıkça ver */
+[data-testid="stExpander"] p,
+[data-testid="stExpander"] .streamlit-expanderHeader p {
+  font-family:'Barlow',sans-serif!important;
+}
+/* Expander toggle icon (ok) — font-family'yi browser default'a sıfırla */
+[data-testid="stExpanderToggleIcon"],
+[data-testid="stExpander"] [class*="Arrow"],
+[data-testid="stExpander"] [class*="arrow"],
+[data-testid="stExpander"] [class*="Icon"],
+[data-testid="stExpander"] [class*="icon"],
+[data-testid="stExpander"] [class*="Toggle"],
+[data-testid="stExpander"] [class*="toggle"],
+[data-testid="stExpander"] svg {
+  font-family:initial!important;
+  color:var(--muted)!important;
 }
 
 /* ── Metrics ──────────────────────────────────────────── */
