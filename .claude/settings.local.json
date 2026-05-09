@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install *)",
+      "PowerShell(python --version; python -m pip --version)",
+      "PowerShell(New-Item *)",
+      "PowerShell(Get-Content *)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_evaluate",
+      "WebFetch(domain:api.apify.com)",
+      "Bash(python -c ' *)",
+      "WebFetch(domain:apify.com)",
+      "Bash(python *)",
+      "WebFetch(domain:developer.instantly.ai)",
+      "WebFetch(domain:app.instantly.ai)",
+      "WebFetch(domain:api.instantly.ai)",
+      "Bash(start cmd *)",
+      "PowerShell(Start-Process cmd -ArgumentList \"/k python -m streamlit run `\"C:\\\\Users\\\\Mehmet Karakoc\\\\Desktop\\\\New folder \\(19\\)\\\\app.py`\"\")",
+      "PowerShell(npm install *)",
+      "PowerShell(claude *)",
+      "PowerShell(Stop-Process *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(git clone *)",
+      "PowerShell(cmd /c \"dir /a `\"C:\\\\Users\\\\Mehmet Karakoc\\\\.claude\\\\skills\\\\ui-ux-pro-max-skill\\\\`\"\")",
+      "PowerShell(cmd /c \"dir /a `\"C:\\\\Users\\\\Mehmet Karakoc\\\\Desktop\\\\New folder \\(19\\)\\\\.claude\\\\`\"\")",
+      "PowerShell(head *)",
+      "PowerShell(cmd /c \"dir /a /s `\"C:\\\\Users\\\\Mehmet Karakoc\\\\Desktop\\\\New folder \\(19\\)\\\\.claude\\\\skills\\\\`\"\")",
+      "PowerShell(cmd /c \"dir `\"C:\\\\Users\\\\Mehmet Karakoc\\\\.claude\\\\skills\\\\motion\\\\packages\\\\`\" /b 2>&1\")",
+      "mcp__playwright__browser_press_key",
+      "PowerShell(gh *)",
+      "PowerShell(winget install *)",
+      "Bash(gh auth *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(gh auth *)"
+    ]
+  }
+}

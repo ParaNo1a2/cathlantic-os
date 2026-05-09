@@ -1,0 +1,25 @@
+# API keyleri — asla Git'e gitmesin
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Playwright screenshots
+*.png
+.playwright-mcp/
