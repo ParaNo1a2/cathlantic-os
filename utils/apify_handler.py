@@ -45,16 +45,16 @@ def run_leads_finder(
     """
     client = get_client(api_key)
 
-    # EN keyword'leri filtrele ve limitle
-    en_keywords = [k for k in keywords if not _is_turkish(k)]
-    keywords_to_send = (en_keywords if en_keywords else keywords)[:MAX_INDUSTRY_KEYWORDS]
+    # EN keyword'leri filtrele, deduplicate ve limitle
+    en_keywords = list(dict.fromkeys(k for k in keywords if not _is_turkish(k)))
+    keywords_to_send = (en_keywords if en_keywords else list(dict.fromkeys(keywords)))[:MAX_INDUSTRY_KEYWORDS]
 
-    # EN unvanları filtrele ve limitle
-    en_titles = [t for t in job_titles if not _is_turkish(t)]
-    titles_to_send = (en_titles if en_titles else job_titles)[:MAX_PERSON_TITLES]
+    # EN unvanları filtrele, deduplicate ve limitle
+    en_titles = list(dict.fromkeys(t for t in job_titles if not _is_turkish(t)))
+    titles_to_send = (en_titles if en_titles else list(dict.fromkeys(job_titles)))[:MAX_PERSON_TITLES]
 
-    # Geçerli company size değerlerini doğrula
-    valid_sizes = [s for s in (company_sizes or []) if s in VALID_EMPLOYEE_SIZES]
+    # Geçerli company size değerlerini doğrula ve deduplicate et
+    valid_sizes = list(dict.fromkeys(s for s in (company_sizes or []) if s in VALID_EMPLOYEE_SIZES))
 
     truncated = (
         len(en_keywords) > MAX_INDUSTRY_KEYWORDS
@@ -62,17 +62,17 @@ def run_leads_finder(
     )
 
     actor_input = {
-        "totalResults":          max(fetch_count, 100),
-        "personTitle":           titles_to_send,
-        "personCountry":         countries if countries else ["Turkey"],
-        "industryKeywords":      keywords_to_send,
-        "includeEmails":         True,
+        "totalResults":           max(fetch_count, 100),
+        "personTitle":            titles_to_send,
+        "personCountry":          list(dict.fromkeys(countries)) if countries else ["Turkey"],
+        "industryKeywords":       keywords_to_send,
+        "includeEmails":          True,
         "skipLeadsWithoutEmails": True,
     }
 
-    # Apollo standart industry adları (daha kesin filtreleme)
+    # Apollo standart industry adları (deduplicate + limit)
     if industries:
-        actor_input["industry"] = industries[:MAX_INDUSTRIES]
+        actor_input["industry"] = list(dict.fromkeys(industries))[:MAX_INDUSTRIES]
 
     # Sadece verified email toggle'ı açıksa ekle
     if only_validated_emails:
